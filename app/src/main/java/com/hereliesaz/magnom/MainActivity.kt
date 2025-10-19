@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.hereliesaz.magnom.ui.screens.AdvancedRawDataEditorScreen
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
                     NavHost(navController = navController, startDestination = "main") {
                         composable("main") { MainScreen(navController = navController) }
                         composable("editor") { CardEditorScreen(navController = navController) }
+                        composable("advanced_editor") { AdvancedRawDataEditorScreen(navController = navController) }
                     }
                 }
             }
