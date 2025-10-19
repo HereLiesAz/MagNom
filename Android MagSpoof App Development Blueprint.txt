@@ -1,0 +1,357 @@
+﻿A System Architecture for an Android-Based Magnetic Stripe Emulation Platform
+Section 1: Foundational Principles of Magnetic Stripe Technology
+The successful emulation of magnetic stripe cards necessitates a foundational understanding of the standards governing their data structure and the physical principles by which that data is encoded and read. This section provides a detailed deconstruction of the ISO/IEC 7811 and 7813 standards that define the logical data layout on a card's magnetic stripe. It then delves into the physics of magnetic data storage and the specific F2F (Frequency/Double Frequency) encoding scheme, which translates logical bits into the physical magnetic phenomena that card readers detect. A comprehensive grasp of both the logical and physical layers is a prerequisite for designing a system capable of generating a valid and readable emulated signal.
+1.1 Deconstruction of Magnetic Stripe Data Standards (ISO/IEC 7811/7813)
+The magnetic stripe on a standard payment or identification card is a composite data storage medium, typically containing three distinct data tracks. For financial transactions, the system is designed with redundancy; Tracks 1 and 2 contain sufficient information to complete a transaction, ensuring that if one track is physically damaged or unreadable, the other can serve as a backup. Track 3 is seldom used by major global payment networks like VISA and is often physically absent, indicated by a narrower magnetic stripe on the card. This multi-track system, defined by international standards, dictates the precise format, content, and encoding of the stored information.
+Track 1 (IATA)
+Track 1 was originally developed by the International Air Transport Association (IATA) for airline ticketing and is the only track that supports alphanumeric characters. It is recorded at a high density of 210 bits per inch (bpi) and can store a maximum of 79 characters, including control characters. Each character is encoded using a 7-bit scheme, comprising 6 data bits and one odd parity bit for error checking.
+The standard structure for financial cards, known as "Format B," is meticulously defined. The data sequence begins with a Start Sentinel, which is the percent sign (%). This is followed by the Primary Account Number (PAN), which can be up to 19 digits long. A Field Separator, the caret symbol (^), separates the PAN from the cardholder's name, which can be between 2 and 26 characters. Another Field Separator follows the name, preceding the 4-digit expiration date in YYMM format. After the expiration date is a 3-digit Service Code, which provides critical instructions to the point-of-sale (POS) terminal. Following the Service Code is a variable-length Discretionary Data field, which may contain security information such as the Card Verification Value (CVV or CVC), a PIN Verification Key Indicator (PVKI), or a PIN Verification Value (PVV). The track data concludes with an End Sentinel, the question mark (?), and a final character for the Longitudinal Redundancy Check (LRC), an error-checking value calculated from all preceding data on the track. The primary utility of Track 1 in modern transactions is for scenarios requiring cardholder name verification, such as hotel check-ins or car rentals.
+Track 2 (ABA)
+Track 2 was developed by the American Bankers Association (ABA) and is the most commonly used track for standard retail payment transactions. It is recorded at a lower density of 75 bpi and is restricted to numeric characters plus a small set of symbols (: ; < = >?). The track has a capacity of 40 characters, including control characters. Each character is encoded using a 5-bit scheme: 4 data bits and one odd parity bit.
+The structure of Track 2 is more concise than Track 1. It begins with a Start Sentinel, the semicolon (;). This is followed by the PAN (up to 19 digits) and a Separator, the equals sign (=). The 4-digit expiration date (YYMM) and the 3-digit Service Code follow. Like Track 1, it includes a variable Discretionary Data field and concludes with an End Sentinel (?) and an LRC character. Because it contains the essential PAN and expiration date, Track 2 alone is sufficient for authorizing the vast majority of card-present transactions.
+Track 3 (Thrift-Savings)
+Track 3 was established by the Thrift-Savings industry and, like Track 1, is recorded at a density of 210 bpi. It is a numeric-only track with a larger capacity of 107 characters. However, its data format is not universally standardized in the same way as Tracks 1 and 2. Major payment networks do not use it for transaction processing, and its use is generally limited to proprietary applications, such as storing loyalty program information or other data specific to the card issuer. Due to its rare and non-standardized nature, it is not a primary target for general-purpose emulation.
+Service Codes and LRC
+A critical element present on both primary tracks is the 3-digit Service Code. This code is not merely descriptive; it is prescriptive. The first digit indicates interchange rules (e.g., international or domestic only). The second digit specifies the authorization processing requirements, notably indicating whether the card contains an integrated circuit chip (EMV) and if the terminal must use the chip if it has the capability. The third digit defines the services the card is approved for, such as ATM usage or cash back eligibility. The ability to manipulate this code is central to certain advanced emulation techniques, such as the Chip-and-PIN bypass mentioned in the documentation for the magspoof tool.
+The Longitudinal Redundancy Check (LRC) is a simple but effective error-detection mechanism. It is calculated by performing a bitwise XOR operation on every character in the track, including the start and end sentinels. The resulting character is appended to the track. When a card is swiped, the reader performs the same calculation and compares its result to the LRC on the card. If they do not match, the read is considered invalid, and the transaction is rejected. Any system that generates or modifies track data must correctly calculate and append a valid LRC.
+The following table provides a consolidated reference for these specifications, synthesizing data from multiple sources into a clear, comparative format.
+Feature
+	Track 1
+	Track 2
+	Track 3
+	Originating Standard
+	IATA (Airlines)
+	ABA (Banking)
+	Thrift-Savings
+	Data Type
+	Alphanumeric
+	Numeric Only
+	Numeric Only
+	Bits per Character
+	7 (6 data + 1 parity)
+	5 (4 data + 1 parity)
+	5 (4 data + 1 parity)
+	Bit Density
+	210 bpi
+	75 bpi
+	210 bpi
+	Maximum Characters
+	79
+	40
+	107
+	Start Sentinel
+	%
+	;
+	Varies (not standardized)
+	End Sentinel
+	?
+	?
+	Varies (not standardized)
+	Field Separator
+	^
+	=
+	Varies (not standardized)
+	A developer building the data generation module within the Android application requires a quick and accurate reference for these disparate specifications. Instead of parsing multiple documents, this table provides an authoritative summary, reducing the risk of implementation errors such as using an incorrect sentinel or exceeding character limits. It directly supports the core function of generating valid track data for emulation.
+1.2 The Physics of Magnetic Data Encoding and F2F (Aiken Biphase)
+The logical data structures defined by the ISO standards are physically realized on the card through the manipulation of magnetic particles. A magnetic stripe is composed of a film containing millions of tiny, needle-shaped ferromagnetic particles, typically iron oxide or the more durable barium ferrite. Each particle behaves as a microscopic bar magnet with a north and south pole. In an unencoded state, these particles may be randomly oriented or aligned in a uniform direction.
+The process of "writing" or encoding data involves using a solenoid—a coil of wire wrapped around a core—as a write head. When an electric current passes through the coil, it generates a concentrated magnetic field at a small gap in the head. As the magnetic stripe moves past this gap, the field is strong enough to align the magnetic particles in a specific direction. By rapidly reversing the direction of the current in the coil, the polarity of the magnetic field flips, which in turn flips the orientation of the particles on the stripe. This creates a pattern of magnetic polarity reversals along the track. A north pole meeting a south pole (N-S) represents a low-flux state, while a north meeting a north (N-N) or a south meeting a south (S-S) creates a region of high magnetic flux, known as a flux reversal. It is this series of flux reversals that encodes the binary data.
+The reading process is the inverse. A read head, which is structurally similar to a write head, passes over the encoded stripe. As the regions of flux reversal move past the read head's gap, they induce a change in the magnetic flux within the head's core. According to Faraday's law of induction, this changing magnetic flux induces a voltage pulse in the coil. The card reader's electronics detect this series of voltage spikes as the raw signal representing the encoded data.
+The specific encoding scheme used for magnetic stripes is known as F2F (Frequency/Double Frequency), also referred to as Aiken Biphase. This scheme is a form of Differential Manchester Encoding and is critically important because it is "self-clocking". This property allows a reader to correctly interpret the data regardless of variations in swipe speed. The encoding works as follows:
+* Each bit is allocated a specific physical length on the stripe, known as a bit cell.
+* A logical '1' is encoded by a single magnetic flux reversal occurring in the middle of the bit cell. This corresponds to a single frequency of transitions.
+* A logical '0' is encoded by two flux reversals: one at the beginning of the bit cell and another in the middle. This corresponds to a double frequency of transitions.
+The key to the self-clocking nature of F2F is that a flux reversal (and thus a voltage spike in the reader) is guaranteed to occur in the middle of every bit cell, regardless of whether the bit is a '1' or a '0'. The reader's internal clock synchronizes to this consistent mid-bit transition. The actual data value is then determined by the presence or absence of an additional transition at the start of the bit cell.
+A final, crucial detail for any emulation system is the bit ordering. The standards specify that data characters are written to the card least-significant bit (LSB) first. For a 5-bit Track 2 character, the bit order on the stripe is 1, 2, 4, 8, parity. Any firmware designed to generate the F2F signal must reverse the bits of each character before transmitting them.
+The success of the entire system hinges on the precise translation from logical ASCII or numeric data into a timed sequence of electrical pulses that generate the correct F2F magnetic waveform. The Android application must be responsible for the logical layer—handling data formatting, ensuring character limits are met, and correctly calculating the LRC. The peripheral's firmware, in turn, must be responsible for the physical layer—performing the bit-reversal of each character, generating the precisely timed high and low signals to the H-bridge to create the F2F waveform, and managing the overall transmission sequence. This strict separation of concerns is a core architectural principle that must guide the system's design. An error in the app's LRC calculation or a microsecond-level timing mistake in the firmware's F2F generation will both result in a failed transaction. Therefore, the architecture must define a clean and robust interface between the app, which provides validated and formatted track strings, and the firmware, which consumes these strings and translates them into physical signals.
+Section 2: Analysis of Core Emulation Hardware and Software
+The foundation of this project is the ecosystem of open-source tools pioneered by security researcher Samy Kamkar. This section provides a technical dissection of the original magspoof device, examining its hardware components and firmware logic. It then surveys the landscape of derivative projects and companion tools, which have evolved the original concept by refining the hardware, enhancing programmability, and providing capabilities for data reading and alternative transmission methods. This analysis reveals a clear trajectory from a static proof-of-concept to a dynamic, programmable peripheral, directly informing the architecture of the proposed Android-controlled system.
+2.1 The samyk/magspoof Architecture: A Technical Deep Dive
+The magspoof device operates on a simple yet powerful principle of electromagnetism. It emulates the physical act of swiping a magnetic stripe card by generating a strong, rapidly changing electromagnetic field. This field is potent enough to induce the expected voltage pulses in a standard magnetic stripe reader's head from a short distance, without any physical contact or need for NFC/RFID capabilities in the reader.
+The core hardware components specified in the original design are inexpensive and widely available, making the device highly accessible for replication.
+* Microcontroller: An Atmel ATtiny85 serves as the brain of the device. This small, 8-pin microcontroller is responsible for storing the track data and executing the timing-critical code to generate the emulation signal.
+* H-Bridge Motor Driver: An L293D H-bridge is used to drive the electromagnet. An H-bridge is a circuit that allows the voltage to be applied across a load in either direction. By rapidly switching the inputs to the H-bridge, the firmware can reverse the direction of the current flowing through the coil, thereby flipping the polarity of the magnetic field. This is the key mechanism for creating the magnetic flux reversals that represent data.
+* Electromagnet (Coil): A simple coil of 24AWG magnet wire acts as the electromagnet. While traditional electromagnets use an iron core to increase efficiency, magspoof omits this for portability and space-saving, as the H-bridge provides sufficient power to generate a working field.
+* Power Source: A small 3.7V LiPo battery powers the device. A 100µF capacitor is placed across the power lines to handle the sudden current draw of the electromagnet, preventing the microcontroller's voltage from dropping and causing a reset.
+* User Interface: A momentary switch is used to trigger the transmission, and an LED provides visual feedback to the user.
+The firmware, written in C and compatible with the Arduino development environment, contains the logic for this process. The track data is typically hardcoded into the firmware as character arrays. When the user presses the button, the main loop calls functions to "play" the tracks. These functions iterate through each character of the track data, perform the necessary bit-reversal (LSB first), calculate the odd parity bit for each character, and then, for each bit, send a precisely timed sequence of signals to the H-bridge to generate the F2F waveform.
+A particularly ingenious aspect of the magspoof design is its method for emulating two tracks using only a single coil. The firmware first transmits the entirety of Track 1 in the correct order. Immediately following this, it transmits Track 2, but with the bits of the entire track played in reverse order. From the perspective of the card reader, this sequence is indistinguishable from a user swiping a card forward (reading Track 1) and then immediately swiping it backward (reading Track 2). Since all card readers are designed to handle bidirectional swipes, this software trick effectively doubles the device's capability without requiring additional hardware.
+2.2 Survey of magspoof Derivatives and Companion Tools (ElectronicCats, HereLiesAz)
+The open-source nature of magspoof has spurred the development of numerous derivative projects that refine, adapt, and extend its core functionality.
+ElectronicCats/magspoof: This organization has produced several iterations of the magspoof hardware (V3, V4, V5) and integrated versions for platforms like the Flipper Zero. While the specific GitHub repository was inaccessible during research , product descriptions and team information reveal a focus on professionalizing the hardware. Their versions often feature more powerful 32-bit ARM microcontrollers, integrated USB ports for LiPo battery charging, and more robust PCB designs. This evolution signifies a move from a simple DIY project to a more polished and capable hardware platform, suitable for integration into larger systems.
+HereLiesAz/MagSpoofPI: This project directly addresses the primary limitation of the original magspoof: its static nature. The goal of MagSpoofPI is to enable dynamic, on-the-fly reprogramming of the magspoof device using a Raspberry Pi as a host. The hardware setup involves connecting the Raspberry Pi's GPIO pins to the ATtiny85's programming pins (MOSI, MISO, SCK, RESET). A Python script on the Pi can modify the track data within the C source code, compile it using a command-line avr-gcc toolchain, and then use avrdude to flash the new firmware directly to the ATtiny85. The physical button on the magspoof is replaced with a connection to another GPIO pin, allowing the Raspberry Pi to trigger the spoof programmatically. This project provides the essential conceptual model for the Android application's primary function: dynamically updating the data on the emulation hardware without needing a full reflashing from a development computer.
+HereLiesAz/magstripereader & MagstripeDecoder: These projects tackle the inverse problem of emulation: reading and decoding physical cards. The hardware consists of a standard TTL (Transistor-Transistor Logic) magnetic stripe reader head connected to an Arduino. These readers typically provide three main signals: Data, Clock (also called Strobe), and Card Present (CLS). The Arduino code monitors these pins. When the Card Present line goes active, the code begins to read the data bits on the Data line, using the Clock line to know when each bit is valid. This process captures the raw bitstream from the track. The MagstripeDecoder component represents the software logic that would then take this bitstream, group the bits into characters (5-bit or 7-bit), check the parity of each character, verify the start/end sentinels and the final LRC, and convert the valid data back into a human-readable ASCII string. Incorporating this logic into the Android app would allow it to validate user-entered data, parse data from imported files, and provide a "raw editor" for advanced users.
+HereLiesAz/AudioSpoof: This project demonstrates an alternative physical transmission method that leverages the ubiquity of the 3.5mm audio jack on older devices. The core concept is to represent the binary F2F waveform as an audio signal. A logical high state is represented by a positive amplitude square wave, and a logical low state by a negative amplitude square wave. This audio signal, when generated by a smartphone and played through the audio jack, can be used to drive a simple electromagnet (such as a modified headphone speaker or a simple coil). The resulting magnetic field, while likely weaker than that produced by a dedicated H-bridge, can be sufficient to trigger a card reader. This approach offers a path to a hardware-light solution, though its practicality is diminished by the removal of the audio jack from most modern phones.
+The evolution from the original samyk/magspoof to the ElectronicCats versions and MagSpoofPI reveals a critical and defining trend: a shift from static, single-purpose devices to dynamic, programmable peripherals. Kamkar's original design is a brilliant proof-of-concept, but to change the emulated card, a user must edit the source code, recompile, and re-flash the microcontroller's firmware. This is cumbersome for practical use. The MagSpoofPI project explicitly states its motivation was the need to modify tracks in real-time for security research, highlighting this exact limitation. The more advanced hardware from ElectronicCats, featuring more powerful processors and better connectivity options like USB, is clearly designed to be controlled by a host, not just triggered by a button. This ecosystem-wide movement is toward a host-controller architectural model. The proposed Android application is the logical "host" or "brain," and the magspoof hardware is the "controller" or "actuator." This paradigm must be the foundation of the system architecture, as it directly addresses the limitations of the original design and aligns with the direction the community has already taken.
+Section 3: Conceptual Blueprint for the Android Application
+The Android application serves as the central command and control hub for the entire emulation system. It must provide an intuitive user interface for managing magnetic stripe data, contain robust business logic for generating and parsing this data correctly, and ensure that all sensitive information is stored securely. This section outlines a modern, scalable software architecture, details the key UI/UX components, and specifies the core application logic required to create a production-ready tool.
+3.1 High-Level System Architecture and Data Flow
+To ensure the application is maintainable, testable, and scalable, a modern architectural pattern such as Model-View-ViewModel (MVVM) is strongly recommended. This pattern decouples the application's components, assigning them distinct responsibilities.
+The primary components of the MVVM architecture for this application would be:
+* UI Layer (View): Comprised of Android Activities and Fragments (or Jetpack Compose Composables), this layer is responsible for rendering the user interface and capturing user input. It observes data exposed by the ViewModel and updates the screen accordingly. It does not contain any business logic.
+* ViewModel Layer: This layer acts as a bridge between the UI and the business logic. It holds the UI's state, survives configuration changes (like screen rotations), and exposes data to the UI, typically through observable streams like LiveData or Kotlin's StateFlow. It processes user actions from the UI and delegates the complex work to the appropriate business logic or data layers.
+* Domain/Business Logic Layer (Use Cases): This optional but recommended layer contains the core, platform-agnostic logic of the application. Here reside the classes responsible for generating valid track strings from user data, calculating the LRC, and parsing raw track data. This logic, inspired by the MagstripeDecoder tool, is the intellectual core of the app.
+* Data Layer (Repository): The repository is the single source of truth for the application's data. It abstracts the origins of the data, whether from a local encrypted database, secure preferences, or a remote server (not applicable here). It provides a clean API for the ViewModel to fetch and save card profiles.
+* Communication Service: A dedicated Android Service, likely a foreground service to ensure reliability, will manage the connection to the external hardware peripheral (e.g., via Bluetooth Low Energy). This service is responsible for establishing the connection, transmitting data payloads, sending control commands, and listening for status updates from the hardware.
+A typical data flow for an emulation operation would proceed as follows:
+1. The user selects a saved "card profile" from a list in the UI.
+2. The UI (View) notifies the ViewModel of the user's selection.
+3. The ViewModel requests the corresponding card data from the Repository.
+4. Upon receiving the data, the ViewModel utilizes the Domain Layer to construct the final, fully formatted Track 1 and Track 2 strings, including a freshly calculated LRC for each.
+5. The ViewModel passes these track strings to the Communication Service.
+6. The Communication Service establishes a connection if one is not already active and transmits the track data to the hardware peripheral, where it is stored in volatile memory.
+7. The user activates the "spoof" function from the UI. The ViewModel sends a "transmit" command to the Communication Service.
+8. The Communication Service relays this command to the hardware.
+9. The hardware performs the emulation and sends a status update (e.g., "success," "error") back to the service, which is then propagated up to the UI for user feedback.
+3.2 User Interface (UI) and User Experience (UX) Design
+The application's UI should be clean, intuitive, and focused on its core tasks: managing cards and initiating emulation.
+* Main Screen: A primary screen should display a list of saved card profiles using a RecyclerView or a LazyColumn in Compose. Each item should have a user-defined nickname (e.g., "Personal Debit," "Office Access Key," "Hotel Room 123") for easy identification. Tapping an item could lead to a detail/transmit screen.
+* Card Editor Screen: This screen is for adding a new card or editing an existing one. It should feature clearly labeled input fields for:
+   * Card Nickname (for user reference)
+   * Primary Account Number (PAN)
+   * Cardholder Name
+   * Expiration Date (using a YY/MM format picker)
+   * Service Code The UI should perform real-time input validation, such as ensuring the PAN contains only numbers and is within the valid length.
+* Advanced Raw Data Editor: To cater to researchers and developers, a separate editor should be available. This screen would provide two text fields for the user to paste or manually type the full, raw data strings for Track 1 and Track 2. As the user types, the application should use its parsing logic (from MagstripeDecoder) to decode the string in real-time, displaying the extracted components (PAN, Name, etc.) and validating the format, parity, and LRC. This provides immediate feedback and serves as a powerful analysis tool.
+* Transmission Interface: After a card is selected, the UI should present a clear and unambiguous way to initiate the spoofing process. This could be a large, prominent button labeled "Transmit" or "Emulate Swipe." During transmission, the UI must provide clear visual feedback, such as a progress indicator, an animation, or status text like "Transmitting..." and "Ready to Use."
+* Settings Screen: A standard settings screen should provide controls for managing the hardware connection (e.g., a button to scan for and pair with the BLE peripheral), application security (e.g., enabling a PIN or biometric lock), and data management options (e.g., backup/restore of card profiles).
+3.3 Core Application Logic: Data Generation, Parsing, and Secure Storage
+The application's core logic modules are what transform it from a simple data container into a functional tool.
+* Track Data Generation: A dedicated class or module must be implemented to construct valid track strings. This module will take structured data objects (containing PAN, name, etc.) and assemble them into the precise string format required by the standards, including the correct sentinels, separators, and padding.
+* LRC Calculation: A utility function must be created to calculate the Longitudinal Redundancy Check. This function will take a track string as input and perform a bitwise XOR on all its characters to produce the final LRC character. This calculation must be performed automatically every time a track is generated or modified to ensure data integrity.
+* Data Parsing: The inverse of the generation module, this parser will be based on the logic from MagstripeDecoder. It will take a raw track string as input and deconstruct it into its constituent parts. The process involves:
+   1. Verifying the Start and End Sentinels.
+   2. Splitting the string by the Field Separators.
+   3. Validating the format of each field (e.g., YYMM for date).
+   4. Performing a parity check on each character.
+   5. Calculating the LRC of the received data and comparing it to the final character of the string. This module is essential for the raw data editor and for validating any imported data.
+* Secure Storage: The storage of magnetic stripe data, particularly for financial cards, is a significant security responsibility. Plaintext storage is unacceptable. The application must use Android's Jetpack Security library, which provides a robust and easy-to-use abstraction over the hardware-backed Android Keystore system. This allows for the creation of encrypted files and encrypted SharedPreferences. All card profiles must be stored in an encrypted format, with the encryption keys managed securely by the Android Keystore, making them difficult to extract even from a rooted device.
+The application's role transcends that of a simple digital wallet. By integrating both data generation (fulfilling magspoof's requirement) and data parsing (magstripereader's function), the app becomes a comprehensive development and analysis tool. This dual capability is a unique value proposition that aligns perfectly with the security researcher persona. A researcher might capture data from a physical card using a reader, import it into the app, analyze and modify the raw track data using the advanced editor, and then immediately use the magspoof peripheral to test the effects of the modification on a POS terminal. This seamless workflow, where the app serves as an integrated development environment (IDE) for magnetic stripe data, is far more powerful than using a collection of separate, disconnected tools. This strategic choice justifies the inclusion of the "Raw Editor" and data parsing features, elevating the project from a mere "card cloner" to a "magstripe research platform."
+Section 4: Android-to-Hardware Communication Interface Design
+The communication link between the Android application and the external hardware peripheral is the central nervous system of the entire platform. The choice of communication protocol dictates the user experience, power consumption, hardware design, and software complexity. This section provides a comparative analysis of the viable communication interfaces—Bluetooth Low Energy (BLE), USB On-The-Go (OTG), and the 3.5mm audio jack—concluding with a detailed architectural design for the recommended BLE-based solution.
+4.1 Comparative Analysis of Communication Protocols (BLE vs. USB OTG vs. Audio Jack)
+Three primary technologies present themselves as candidates for bridging the gap between the Android device and the magspoof hardware. Each has distinct advantages and disadvantages that must be weighed against the project's goals of creating a modern, portable, and user-friendly system.
+3.5mm Audio Jack: This method, demonstrated by the AudioSpoof concept, uses the phone's analog audio output to transmit data. The digital F2F waveform is modulated into an audio signal that can drive an electromagnet.
+* Pros: The interface is simple from a hardware perspective, and the audio jack was once a universal feature on smartphones.
+* Cons: This is now a legacy port, absent from the majority of modern flagship and mid-range smartphones, making it an unsuitable choice for a forward-looking application. The communication is primarily one-way without complex modulation schemes, making it difficult to receive status updates from the hardware. Data transmission is susceptible to the phone's volume settings, equalization effects, and ambient electrical noise. Data rates are also very low, typically limited to around 1-2 kbps.
+USB On-The-Go (OTG): This protocol allows an Android device to act as a USB host, enabling it to power and communicate with peripherals like an Arduino or a custom microcontroller.
+* Pros: USB offers a high-speed, highly reliable, and standardized serial communication channel (e.g., using the CDC-ACM profile). It can also provide power from the phone to the peripheral, potentially eliminating the need for a separate battery in the hardware.
+* Cons: The primary drawback is the requirement of a physical cable and an OTG adapter. This is fundamentally at odds with the user experience of a "digital wallet," which should be convenient and wireless. The physical connection is cumbersome and prone to wear and tear. Furthermore, not all Android devices fully support USB OTG host mode.
+Bluetooth Low Energy (BLE): Introduced in Bluetooth 4.0, BLE is designed for short-burst, low-power communication between devices.
+* Pros: BLE is the ideal protocol for this application. Its wireless nature provides the seamless and convenient user experience expected of a mobile payment or access tool. Its extremely low power consumption is perfect for small, battery-powered peripherals, allowing them to operate for months or years on a coin cell or small LiPo battery. It is natively supported by the Android OS on all devices since version 4.3 (API level 18) and provides a flexible, bidirectional communication framework through the Generic Attribute Profile (GATT).
+* Cons: The software implementation is more complex than a simple serial connection over USB. On Android versions 11 and lower, BLE scanning requires the user to grant location permissions, which can be a point of friction, although this is not required for apps targeting Android 12 and higher that use the new Bluetooth permissions.
+The following table provides a structured, data-driven justification for the final recommendation. By objectively comparing the options against key project requirements, it demonstrates a rigorous engineering decision-making process.
+Criteria
+	3.5mm Audio Jack
+	USB OTG
+	Bluetooth Low Energy (BLE)
+	Modern Device Ubiquity
+	1/5 (Legacy, largely removed)
+	3/5 (Requires OTG support, physical port)
+	5/5 (Standard on all modern devices)
+	Power Efficiency
+	2/5 (Drains phone battery)
+	2/5 (Powers peripheral, drains phone)
+	5/5 (Extremely low power for peripheral)
+	Data Rate
+	1/5 (Very Low, ~1-2 kbps)
+	5/5 (High, Mbps)
+	3/5 (Moderate, ~1 Mbps theoretical)
+	Bidirectional Capability
+	2/5 (Difficult, requires complex modulation)
+	5/5 (Full duplex, standard)
+	5/5 (Full duplex, standard via GATT)
+	Ease of Use (UX)
+	2/5 (Wired, volume dependent)
+	1/5 (Wired, requires adapter, cumbersome)
+	5/5 (Wireless, seamless)
+	Implementation Complexity
+	3/5 (Moderate analog/digital mix)
+	2/5 (Simple, standard serial libraries)
+	4/5 (Complex GATT/service management)
+	Overall Suitability
+	1/5 (Unsuitable)
+	2/5 (Impractical)
+	5/5 (Highly Recommended)
+	4.2 Recommended Implementation: A BLE-Based Peripheral Architecture
+Based on the comparative analysis, Bluetooth Low Energy is the unequivocally superior choice. It aligns perfectly with the project's requirements for a modern, portable, and power-efficient wireless device.
+The architecture of the BLE communication will be based on the standard GATT profile roles:
+* Central / GATT Client: The Android application will assume the role of the Central device. It will be responsible for scanning for peripherals, initiating connections, and sending requests (writes) to the server.
+* Peripheral / GATT Server: The custom magspoof hardware will act as the Peripheral device. It will advertise its presence, accept incoming connections, and host a GATT server that exposes its services and characteristics to the client.
+The core of the communication protocol is a custom-defined GATT service. This service acts as a container for the data and control points of the device.
+The choice of BLE as the communication protocol fundamentally alters the hardware requirements away from the simple ATtiny85 used in the original magspoof. The ATtiny85 lacks a radio and does not have the memory or processing power to run a BLE stack. Therefore, a core part of this project's execution is the design of a new hardware peripheral that integrates the magspoof electromagnet driver with a modern BLE-capable System-on-a-Chip (SoC). Suitable candidates include the Nordic Semiconductor nRF52 series (e.g., nRF52832, nRF52840) or the Espressif ESP32 series. This "MagSpoof-BLE" board becomes a central deliverable, representing a necessary evolution of the original concept to meet the requirements of a modern, app-controlled system.
+The firmware on this new SoC will be responsible for initializing the BLE stack, defining and registering the GATT service profile detailed below, and handling incoming BLE events. Instead of reading hardcoded track data from its own flash memory, the firmware will populate RAM buffers with the data received via BLE writes to the UUID_TRACK1 and UUID_TRACK2 characteristics. When a command is written to the UUID_CONTROL characteristic, the firmware will trigger the bit-banging routine, which will read the track data from these RAM buffers to generate the F2F signal for the H-bridge.
+The following table serves as the formal API contract between the Android application developer and the firmware developer. It eliminates ambiguity in the communication protocol by defining the exact services, characteristics, and their properties, ensuring that both software components can be developed in parallel and will interoperate correctly.
+Type
+	Name
+	UUID
+	Properties
+	Data Format / Description
+	Service
+	MagSpoof Service
+	0000BEEF-1212-EFEF-1523-785FEABCD123
+	Primary
+	Main service for all MagSpoof operations.
+	Characteristic
+	Track 1 Data
+	0000B0B1-1212-EFEF-1523-785FEABCD123
+	Write, Write Without Response
+	Accepts the full, formatted ASCII string for Track 1 (up to 79 bytes).
+	Characteristic
+	Track 2 Data
+	0000B0B2-1212-EFEF-1523-785FEABCD123
+	Write, Write Without Response
+	Accepts the full, formatted ASCII string for Track 2 (up to 40 bytes).
+	Characteristic
+	Control Point
+	0000B0B3-1212-EFEF-1523-785FEABCD123
+	Write
+	Accepts a single-byte command. E.g., 0x01: Emulate Tracks 1&2; 0x02: Get Status.
+	Characteristic
+	Status Notification
+	0000B0B4-1212-EFEF-1523-785FEABCD123
+	Read, Notify
+	Peripheral sends single-byte status codes. E.g., 0x00: Idle; 0x01: Emulating; 0xFE: Data Error; 0xFF: General Error.
+	Descriptor
+	Client Characteristic Configuration
+	00002902-0000-1000-8000-00805F9B34FB
+	Read, Write
+	Standard descriptor for the Status Notification characteristic. The app writes to it to enable/disable notifications.
+	Section 5: Feasibility Analysis of Proprietary System Integration
+The user query specifically requests an investigation into the feasibility of integrating the application with two proprietary systems: Samsung's Magnetic Secure Transmission (MST) and the hardware from the defunct company Coin. This analysis concludes that direct integration with these systems is not feasible for a third-party application due to their closed, secure, and, in one case, obsolete nature.
+5.1 Samsung MST: A Closed Ecosystem Analysis
+Samsung's Magnetic Secure Transmission (MST) technology is, at a physical level, functionally analogous to magspoof. It utilizes a small, integrated inductive loop within specific Samsung Galaxy smartphones to generate a magnetic field that precisely mimics the signal of a swiped magnetic stripe. The primary strategic advantage of MST was its remarkable backward compatibility, allowing for contactless payments on millions of legacy POS terminals that only had a magnetic stripe reader and lacked NFC capabilities.
+However, the feasibility of a third-party application controlling this MST hardware is effectively zero. There are several insurmountable barriers:
+* No Public API: Samsung does not provide a public-facing Software Development Kit (SDK) or Application Programming Interface (API) that grants low-level access to the MST hardware. The available Samsung Pay SDKs are designed for high-level payment integration, allowing merchant apps to initiate a Samsung Pay transaction or issuer apps to provision a card into the Samsung Wallet. These SDKs do not expose any functions to, for example, "transmit raw track data via MST."
+* Security and System Integration: MST functionality is a deeply integrated component of the Samsung Pay platform, which is heavily protected by Samsung's hardware-level security framework, KNOX. This is by design. To ensure the security of payment transactions, which use tokenization just like NFC payments , access to the MST hardware is restricted to signed, trusted system processes. Bypassing these protections would require rooting the device and reverse-engineering protected components of the Android operating system, a process that is complex, device-specific, and would inherently violate the security model that makes the system trustworthy for payments.
+* Market Obsolescence: The strategic importance of MST has waned as NFC-enabled terminals have become the global standard. Recognizing this trend, Samsung has stopped including the physical MST hardware in its newer flagship devices, starting with the Galaxy S21 series in many regions. Investing effort in a technology that is being actively phased out by its sole proprietor would be an unproductive endeavor.
+In summary, Samsung MST is a closed, proprietary, and increasingly legacy technology. Direct control from a third-party application is not possible through any sanctioned means.
+5.2 Coin Hardware: A Reverse Engineering Assessment
+The Coin card was a pioneering device in the "smart card" space. It was a self-contained, credit-card-sized device with a small display, a button for card selection, and an internal battery. It could store the data of multiple magnetic stripe cards and emulate the selected card at a POS terminal using a dynamic magnetic stripe technology. Teardowns of the device have revealed that it was a well-engineered piece of hardware, utilizing a Nordic Semiconductor nRF51822 System-on-a-Chip (SoC) as its main processor. This is significant because the nRF51822 is a capable microcontroller with an integrated BLE radio.
+Despite its interesting technology, integrating the proposed Android application with existing Coin hardware is highly impractical and not recommended. Coin as a company is defunct, and the product is no longer supported. Therefore, any integration effort would have to be a full-scale reverse-engineering project, involving several complex and time-consuming stages:
+1. Hardware Analysis: A physical teardown of the card to map the PCB traces from the nRF51822 SoC to the other components, such as the dynamic magnetic stripe coils and the button.
+2. Firmware Extraction: The firmware would need to be dumped from the SoC's internal flash memory, likely via a JTAG or SWD debugging interface, if accessible.
+3. BLE Protocol Reverse Engineering: The most critical step would be to intercept and analyze the BLE communication between an original Coin card and its official (and now unavailable) mobile application. This would involve using BLE sniffing tools to capture the GATT service discovery process and subsequent data exchanges to deduce the custom UUIDs for services and characteristics, as well as the command structure and data formats used to upload card data and select a card for emulation.
+This process is fraught with challenges and has no guarantee of success. The value of such an effort would be purely academic. The project's resources would be far better spent on developing a new, open piece of hardware, as proposed in Section 4, which can be designed from the ground up to work with the Android application, rather than attempting to resurrect a dead and unsupported commercial product.
+The proprietary nature of both Samsung MST and the Coin card is not merely a technical hurdle; it is a strategic one. These companies created closed ecosystems to control the user experience, guarantee a certain level of security through tokenization and platforms like KNOX, and maintain their unique business models. The inability of an external developer to interface with these systems is not a failure of the developer, but a direct consequence of this intentional design. This provides a crucial lesson and a strategic positioning for the proposed open-source project. Its goal should not be to circumvent these walled gardens, but rather to provide an open, flexible, and powerful alternative for the researchers, developers, and hobbyists who are explicitly excluded from them. The "openness" of the proposed hardware and its communication protocol becomes its greatest strength and key differentiator.
+Section 6: Security, Legal, and Deployment Considerations
+A "production-ready" application, particularly one that handles sensitive financial data and interacts with payment systems, must be designed with a deep understanding of the associated security risks, legal landscape, and platform policies. The technical capabilities of this system are potent, and with that power comes significant responsibility. This section addresses critical non-technical aspects, including strategies for mitigating security risks and a realistic assessment of the challenges of deploying such an application through official channels like the Google Play Store.
+6.1 Inherent Security Risks and Mitigation Strategies
+The application and its associated hardware create several potential attack surfaces and risks that must be addressed through a defense-in-depth approach.
+* Data Security on the Android Device: The primary risk is the compromise of the stored magnetic stripe data. If an attacker gains access to the app's data, they could clone the user's cards.
+   * Mitigation:
+      1. Mandatory App Lock: The application must enforce a security screen (PIN, pattern, or biometric authentication) that is required to open the app or access sensitive functions.
+      2. Encryption at Rest: As detailed in Section 3.3, all stored card profiles must be encrypted using the Android Keystore system via the Jetpack Security library. This ensures that the data is unreadable even if an attacker manages to extract the app's files from the device.
+      3. Clipboard and Screenshot Prevention: The application should programmatically disable the ability to copy sensitive data (like PANs) to the system clipboard and prevent screenshots from being taken on screens that display card details.
+* Communication Security: Standard BLE communication can be passively intercepted ("sniffed"). An attacker in proximity could potentially capture the track data as it is being transmitted from the phone to the peripheral.
+   * Mitigation:
+      1. Use BLE Security Features: The BLE connection should be configured to use bonding and encryption. Bonding creates a long-term key that is used to encrypt all subsequent communications between the phone and the peripheral.
+      2. Application-Layer Encryption (Optional): For an even higher level of security, the track data could be encrypted within the Android app before being sent over BLE, and then decrypted on the peripheral's firmware. This would protect the data even if the underlying BLE encryption were somehow compromised.
+* Physical Security of the Peripheral: If the hardware peripheral is lost or stolen, it could become a security risk.
+   * Mitigation:
+      1. Use Volatile Memory: The peripheral's firmware should be designed to store the received track data only in volatile RAM. The data should be wiped upon power loss or disconnection from the phone. Card profiles should not be stored permanently in the peripheral's non-volatile flash memory.
+      2. Session-Based Data: The application should transmit the data for a single card to the peripheral only when the user is actively preparing to use it. The peripheral should be designed to clear this data after a single successful transmission or after a short timeout period.
+6.2 Navigating Legal Boundaries and App Store Policies
+The technology at the heart of this project is legally neutral; an electromagnet is not inherently illegal. However, its intended application—the emulation of magnetic stripes, particularly those of payment cards—places it in a legally and ethically sensitive area.
+* Legal Landscape: The unauthorized use of an "access device" (which includes credit card numbers) to obtain goods or services is a serious federal crime under laws such as the Computer Fraud and Abuse Act. The act of capturing card data without authorization, known as "skimming," is also illegal and aggressively prosecuted. While using the device to emulate a card that one legally owns and is authorized to use may occupy a legal gray area, the potential for misuse is enormous. Any distribution of this application must be accompanied by strong, explicit warnings that its use for fraudulent purposes is illegal and that the user bears all responsibility for their actions.
+* App Store Policies: Deploying this application via the Google Play Store presents a significant challenge. Google's Developer Program Policies prohibit apps that facilitate deceptive or harmful behavior, or that encourage illegal activities. An application marketed as a "credit card spoofer" or a tool to "clone your wallet" would be summarily rejected. Apple's policies are similarly strict, requiring developers to enter into specific agreements and undergo security reviews to access NFC and secure element functionalities, indicating a high level of scrutiny for any payment-related technology.
+   * Positioning and Marketing Strategy: To have any chance of being accepted and remaining on the Google Play Store, the application must be meticulously positioned as an educational tool or a developer utility. The app's name, description, and UI should scrupulously avoid any language related to "spoofing," "cloning," or payments. Instead, it should be framed as a "Magnetic Stripe Protocol Analyzer" or a "Hardware Development Kit for F2F Encoding." The focus should be on its utility for engineers, students, and researchers to learn about magnetic stripe standards and to develop and test their own custom hardware peripherals.
+   * Responsible Feature Withholding: The original creator of magspoof, Samy Kamkar, deliberately chose not to release the code for the Chip-and-PIN bypass and the American Express card number prediction algorithm. This act of responsible disclosure is a model to be followed. The production application should similarly avoid implementing any features that have a primary application in fraudulent activity.
+The project's greatest technical strengths—its flexibility, dynamic data handling, and raw protocol control—are simultaneously its greatest liabilities from a legal and policy standpoint. The very features that make it a powerful research tool also make it a dangerous tool for fraud. This creates a fundamental conflict between the goal of creating a "fully-featured" tool and the goal of creating a "production-ready" and distributable application. A single application cannot optimally serve both of these masters.
+This leads to a crucial strategic recommendation: a bifurcated release strategy.
+1. Google Play Store Version: A "safe" version of the application could be published on the official app store. This version would be intentionally limited, perhaps only allowing the emulation of non-financial data formats (like AAMVA driver's licenses or custom loyalty cards) or requiring the user to generate data that does not conform to the Luhn algorithm used by payment cards. This version would serve to demonstrate the technology and reach a wider audience in a responsible manner.
+2. Open-Source Developer Version: The full-featured version of the application, capable of emulating any valid magnetic stripe data including financial cards, should be developed and released as an open-source project on a platform like GitHub. This allows developers, researchers, and advanced users to compile and install the application themselves, forcing them to explicitly acknowledge and accept the associated risks and legal responsibilities. This strategy satisfies the goal of creating a "production-ready" app (via the Play Store version) while still providing the powerful, unfettered tool the user originally envisioned (via the open-source release).
+Section 7: Granular Implementation Checklist for an AI Agent
+This section translates the preceding architectural and strategic analysis into a granular, step-by-step implementation plan. This checklist is designed to be followed by an AI agent or a human development team to take the project from concept to a deployable product.
+Phase 1: Environment and Toolchain Setup
+1. Install Android Development Environment:
+   * Action: Download and install the latest stable version of Android Studio.
+   * Action: Use the SDK Manager within Android Studio to install the Android SDK Platform for the target API level (e.g., API 34) and the necessary build tools.
+2. Install Embedded Development Toolchain:
+   * Action: Based on the selected BLE SoC, install the corresponding toolchain.
+      * For Nordic nRF52 series: Install the nRF Connect SDK, including the Zephyr RTOS and west command-line tool.
+      * For Espressif ESP32 series: Install the ESP-IDF (Espressif IoT Development Framework) and its required dependencies.
+3. Initialize Version Control:
+   * Action: Create a new monorepo using Git.
+   * Action: Create two root directories within the repository: /android_app and /peripheral_firmware.
+   * Action: Initialize the Android Studio project within the /android_app directory.
+   * Action: Initialize the embedded firmware project within the /peripheral_firmware directory.
+   * Action: Create a root-level README.md file detailing the project's purpose, structure, and setup instructions.
+Phase 2: Custom Peripheral Hardware Assembly and Firmware Deployment
+1. Hardware Component Selection and Prototyping:
+   * Action: Select a specific BLE-capable SoC development board for initial prototyping (e.g., Nordic nRF52840 DK, ESP32-DevKitC).
+   * Action: Select a suitable H-bridge motor driver IC (e.g., TI DRV8833, Pololu DRV8835).
+   * Action: Assemble a breadboard prototype connecting the SoC's GPIO pins to the H-bridge inputs.
+   * Action: Wind a coil of 24AWG magnet wire (~50 turns, ~3cm diameter) and connect its ends to the H-bridge outputs.
+   * Action: Connect a power source (e.g., 3.7V LiPo battery) to the circuit.
+2. Firmware Development: BLE Stack and GATT Server:
+   * Action: Create a new firmware project using the selected SoC's SDK.
+   * Action: Implement the BLE initialization code to start the device advertising as a peripheral.
+   * Action: Implement the custom GATT service profile as defined in Table 3. This includes creating the MagSpoof Service and all four of its characteristics (Track 1 Data, Track 2 Data, Control Point, Status Notification) with their specified UUIDs and properties.
+   * Action: Implement the GATT server callback functions to handle read and write requests from the central device (the Android app).
+3. Firmware Development: Core Emulation Logic:
+   * Action: Create data buffers in RAM to store the track data received over BLE. The GATT write callback should populate these buffers.
+   * Action: Port the bit-banging and F2F timing logic from the original C-based magspoof firmware to the new SoC's environment. This function should read from the RAM buffers.
+   * Action: Implement the logic in the Control Point characteristic's write handler. When the "emulate" command (0x01) is received, it should trigger the F2F generation function.
+   * Action: Implement status updates. The firmware should write to the Status Notification characteristic (e.g., 0x01 when emulation starts, 0x00 when finished) and send a notification to the connected client.
+4. Initial Firmware Testing:
+   * Action: Use a generic BLE scanner app (e.g., nRF Connect for Mobile) to connect to the peripheral, verify that the custom service and characteristics are visible, write sample track data, and trigger the control point.
+   * Action: Use an oscilloscope to probe the H-bridge output to verify that a timed square wave is being generated upon command.
+Phase 3: Android Application Scaffolding and UI Implementation
+1. Create Android Project:
+   * Action: In Android Studio, create a new project using a modern template (e.g., "Empty Views Activity" with Kotlin or "Empty Activity" with Jetpack Compose).
+   * Action: Configure the build.gradle file with the target and minimum SDK versions, and add necessary library dependencies (e.g., Jetpack Compose, ViewModel, LiveData/Coroutines, Jetpack Security).
+2. Define Permissions:
+   * Action: Add all required Bluetooth permissions to the AndroidManifest.xml file: BLUETOOTH, BLUETOOTH_ADMIN, BLUETOOTH_SCAN, BLUETOOTH_CONNECT, and ACCESS_FINE_LOCATION (for compatibility with older Android versions).
+3. Implement UI Layouts:
+   * Action: Using Jetpack Compose or XML, build the UI for the main screen (card list), the card editor screen (with input fields and validation), the advanced raw data editor, and the settings screen.
+   * Action: Create placeholder UI elements for connection status and transmission feedback.
+4. Set Up ViewModels:
+   * Action: Create a ViewModel for each screen that requires state management.
+   * Action: Define state objects (e.g., using StateFlow) within the ViewModels to hold data such as the list of cards, the details of the card being edited, and the BLE connection status.
+Phase 4: Core Logic and Data Management Module Development
+1. Implement Data Logic Modules:
+   * Action: Create a TrackDataGenerator.kt class with functions to construct valid Track 1 and Track 2 strings from structured input data.
+   * Action: Create an LrcCalculator.kt object with a function to compute the LRC for a given track string.
+   * Action: Create a TrackDataParser.kt class to perform the inverse operation: validating and deconstructing raw track strings into their components.
+2. Implement Secure Storage:
+   * Action: Add the androidx.security:security-crypto dependency.
+   * Action: Implement a CardRepository class that uses EncryptedSharedPreferences or an encrypted Room database to perform all CRUD (Create, Read, Update, Delete) operations for card profiles.
+   * Action: Ensure all data is serialized (e.g., to JSON) before encryption and deserialized after decryption.
+Phase 5: BLE Communication Service Implementation and Integration
+1. Create BLE Service:
+   * Action: Implement a BleCommunicationService.kt as a foreground Android Service. This ensures the connection can persist even if the app is in the background.
+   * Action: The service should manage the entire BLE lifecycle: scanning, connecting, discovering services, and disconnecting.
+2. Implement BLE Operations:
+   * Action: Implement scanning logic that filters for devices advertising the custom MagSpoof Service UUID.
+   * Action: Implement the BluetoothGattCallback to handle connection state changes, service discovery results, characteristic write confirmations, and incoming notifications from the Status characteristic.
+3. Integrate Service with App Logic:
+   * Action: Use a bound service pattern or a dependency injection framework to provide the ViewModels with access to the BleCommunicationService.
+   * Action: Create functions in the service like writeTrackData(track1: String, track2: String) and triggerSpoof().
+   * Action: Expose the connection status and incoming status notifications from the service to the ViewModels using StateFlow or LiveData so the UI can react accordingly.
+Phase 6: End-to-End System Testing and Debugging
+1. Set Up Test Environment:
+   * Action: Obtain a physical magnetic stripe reader and connect it to a PC. Use software (e.g., a simple terminal program for a serial reader, or Notepad for a keyboard wedge reader) to view the output of a swipe.
+2. Perform Integration Testing:
+   * Action: Use the Android app to connect to the custom peripheral via BLE.
+   * Action: Create a new card profile in the app (e.g., a standard test card format).
+   * Action: Transmit the data to the peripheral. Verify via logs or a debugger that the correct data is sent and received.
+   * Action: Trigger the "emulate" command from the app. Place the peripheral's coil near the test reader's head.
+   * Action: Verify that the test reader correctly decodes and displays the card data.
+3. Test Edge Cases and Debug:
+   * Action: Test with maximum-length track data.
+   * Action: Test with special characters (on Track 1).
+   * Action: Test the system's response to BLE connection drops and reconnections.
+   * Action: Use BLE analysis tools (e.g., nRF Connect, Wireshark with a BLE sniffer) to inspect the packets being exchanged and debug any protocol-level issues.
+Phase 7: Production Build and Packaging
+1. Finalize Application:
+   * Action: Refine the UI/UX based on testing feedback.
+   * Action: Add a comprehensive "Help" or "About" section that explains the app's purpose (as a developer tool) and includes the necessary legal disclaimers.
+   * Action: Implement a mandatory End-User License Agreement (EULA) that the user must accept on first launch, acknowledging the legal responsibilities.
+2. Prepare for Release:
+   * Action: Configure ProGuard/R8 in the build.gradle file to enable code shrinking and obfuscation for the release build. This makes reverse-engineering the app more difficult.
+   * Action: Generate a signed release APK or App Bundle using a new release keystore.
+3. Execute Distribution Strategy:
+   * Action: For the open-source version: Push the final, complete source code for both the app and firmware to a public GitHub repository. Include detailed build instructions and the legal disclaimer in the README.md. Create a release on GitHub with the signed APK.
+   * Action: For the potential Play Store version: Create a separate, feature-limited branch of the code. Prepare the store listing (icon, screenshots, description) carefully, adhering to the "developer tool" positioning strategy. Submit the app for review. Be prepared for potential rejection and the need to appeal or further modify the application to comply with policies.
+Works cited
+1. Magstripe Cards - Senstar, https://xnet.senstar.com/webhelp/SymphonyAC/1.6/en/MagstripeCards.html 2. The Beginner's Guide to Magnetic Stripes | CardPrinting.com, https://www.cardprinting.com/articles/guide-to-magnetic-stripes/ 3. What is Track 1, 2, and 3 Data in Magnetic Stripe Credit Cards? - Clearly Payments, https://www.clearlypayments.com/blog/what-is-track-1-2-and-3-data-in-magnetic-stripe-credit-cards/ 4. What data is stored on a payment card's magnetic stripe? - Knowledge Article Detail Page - Anet | Authorize.net Support Center, https://support.authorize.net/knowledgebase/Knowledgearticle/?code=000001235 5. MAGNETIC STRIPE CARD STANDARDS - MagTek, https://www.magtek.com/content/documentationfiles/d99800004.pdf 6. CARD DATA STRING TRACK 1 TRACK 2 TRACK 3 iBUTTON DATA STRING - DT Research, https://www.dtresearch.com/support/user_manual/MSR_User_Usermanual.pdf 7. Magnetic Stripes - Mallikarjun Tirlapur - GitHub Pages, https://mallikarjuntirlapur.github.io/MagneticStripeReader/ 8. Abstract: - The goal of this lab was to construct a device that would emulate the data on a magnet stripe. In, https://www.sjsu.edu/people/Tan.v.nguyen/Final%20Project2.pdf 9. MagSpoof V4 – Magnetic Card Emulator – Electronic Cats - KSEC Labs, https://labs.ksec.co.uk/product/magspoof-v4-magnetic-card-emulator-electronic-cats-pre-order/ 10. MagSpoof: A device that spoofs credit cards, disables chip-and-PIN protection, https://www.helpnetsecurity.com/2015/11/25/magspoof-a-device-that-spoofs-credit-cards-disables-chip-and-pin-protection/ 11. Explaining the Physics Behind Magstripes/ Experimental Conclusions | Lasers, Technology, and Teleportation with Prof. Magnes, https://pages.vassar.edu/ltt/?p=965 12. The Magnetic Stripe Technology - USC Viterbi School of Engineering - University of Southern California, https://illumin.usc.edu/the-magnetic-stripe-technology/ 13. About: Differential Manchester encoding - DBpedia, https://dbpedia.org/page/Differential_Manchester_encoding 14. Differential Manchester encoding - Wikipedia, https://en.wikipedia.org/wiki/Differential_Manchester_encoding 15. Differential Manchester Encoding - Wikipedia, The Free Encyclopedia | PDF - Scribd, https://www.scribd.com/document/218837157/Differential-Manchester-Encoding-Wikipedia-The-Free-Encyclopedia 16. samyk/magspoof: A portable device that can spoof/emulate any magnetic stripe, credit card or hotel card "wirelessly", even on standard magstripe (non-NFC/RFID) readers. It can disable Chip&PIN and predict AMEX card numbers with 100% accuracy. - GitHub, https://github.com/samyk/magspoof 17. MagSpoof V3 - Magnetic Card Emulator - Electronic Cats - KSEC Labs, https://labs.ksec.co.uk/product/magspoof-v3-magnetic-card-emulator/ 18. Flipper Add-On Magspoof for MagStripe Testing - Electronic Cats - KSEC Labs, https://labs.ksec.co.uk/product/flipper-zero-add-on-magspoof-electronic-cats/ 19. Sponsor @ElectronicCats on GitHub Sponsors, https://github.com/sponsors/ElectronicCats 20. MagSpoofPI - Hackaday.io, https://hackaday.io/project/14754-magspoofpi 21. MagSpoofPI - Salvador Mendoza, https://salmg.net/2016/08/27/magspoofpi/ 22. Instructions | MagSpoofPI - Hackaday.io, https://hackaday.io/project/14754/instructions 23. Arduino Magnetic Stripe Decoder : 4 Steps (with Pictures) - Instructables, https://www.instructables.com/Arduino-magnetic-stripe-decoder/ 24. carlosefr/magstripelib: Magnetic (swipe-type) card reader library for the Arduino. - GitHub, https://github.com/carlosefr/magstripelib 25. Turn Your Arduino Into a Magnetic Card Reader! - Instructables, https://www.instructables.com/Turn-your-Arduino-into-a-Magnetic-Card-Reader/ 26. How to read/send data using the Android Devices 3.5mm headset jack? - Stack Overflow, https://stackoverflow.com/questions/7931592/how-to-read-send-data-using-the-android-devices-3-5mm-headset-jack 27. Can any other data besides music travel through a headphone jack cable? - Reddit, https://www.reddit.com/r/privacy/comments/10fw0fu/can_any_other_data_besides_music_travel_through_a/ 28. What protocol does a headphone jack use? - Electrical Engineering Stack Exchange, https://electronics.stackexchange.com/questions/12498/what-protocol-does-a-headphone-jack-use 29. Phone connector (audio) - Wikipedia, https://en.wikipedia.org/wiki/Phone_connector_(audio) 30. 1% of US smartphone buyers think headphone jack is top-three feature : r/Android - Reddit, https://www.reddit.com/r/Android/comments/cue50q/1_of_us_smartphone_buyers_think_headphone_jack_is/ 31. Transmitting Data From Android to Arduino Through Audio Jack : 3 Steps - Instructables, https://www.instructables.com/Transmitting-data-from-Android-to-Arduino-through-/ 32. Audio Jack Data Communication on Smartphones - UNI ScholarWorks, https://scholarworks.uni.edu/cgi/viewcontent.cgi?article=1009&context=agss 33. Send data to Android through Headphone Jack - General Guidance - Arduino Forum, https://forum.arduino.cc/t/send-data-to-android-through-headphone-jack/358036 34. Arduino Android USB Serial Communication With OTG Cable : 11 Steps - Instructables, https://www.instructables.com/Arduin-Adroid-USB-Serial-Communication/ 35. Can I use an external microphone to make recordings on a smartphone? - The Guardian, https://www.theguardian.com/technology/askjack/2014/dec/04/can-i-use-an-external-microphone-to-make-recordings-on-a-smartphone 36. ESP32, ESP8266 and Android Communication over USB - YouTube, https://www.youtube.com/watch?v=CfonnuwjqE4 37. Connecting USB Serial Port Device to Android Phone - YouTube, https://www.youtube.com/watch?v=c0M5L4AAmQw 38. Bluetooth Low Energy - Android Open Source Project, https://source.android.com/docs/core/connect/bluetooth/ble 39. Build audio accessories | Android Open Source Project, https://source.android.com/docs/core/interaction/accessories/audio 40. BLE Mobile App Development: iOS and Android Guide - Stormotion, https://stormotion.io/blog/develop-ble-app/ 41. BLE App Development for Android and iOS (Bluetooth Low Energy), https://topflightapps.com/ideas/develop-ble-app/ 42. Bluetooth Low Energy | Connectivity - Android Developers, https://developer.android.com/develop/connectivity/bluetooth/ble/ble-overview 43. Android™ Bluetooth® Low Energy (BLE) App Development For BM70 / RN4870, https://developerhelp.microchip.com/xwiki/bin/view/applications/ble/android-development-for-bm70rn4870/ 44. MST Payment Explained: Samsung MST vs. NFC - Tidal Commerce, https://www.tidalcommerce.com/learn/mst-payment 45. Demo Video: Samsung Pay on a terminal without NFC using the MST, via the card reader, https://www.reddit.com/r/Android/comments/3jmw86/demo_video_samsung_pay_on_a_terminal_without_nfc/ 46. Samsung Pay: What is it, how does it work and how do you use it in 2021? - XDA Developers, https://www.xda-developers.com/samsung-pay/ 47. Understanding and using the SDK | Samsung Developer, https://developer.samsung.com/pay/native/sdk-overview.html 48. Integrate In-App payment into merchant apps using Samsung Pay SDK, https://developer.samsung.com/codelab/pay/in-app-payment.html 49. Index - Samsung Pay | Samsung Developer, https://developer.samsung.com/pay/api-reference/index-all.html 50. Samsung Pay Not Supported On Knox-Tripped Devices - XDA Developers, https://www.xda-developers.com/samsung-pay-not-supported-on-knox-tripped-devices/ 51. Does MST still work after upgrading to Samsung Wallet? - Reddit, https://www.reddit.com/r/samsung/comments/vnboh0/does_mst_still_work_after_upgrading_to_samsung/ 52. Anyone remember the Coin "credit card"? 2013 : r/CreditCards - Reddit, https://www.reddit.com/r/CreditCards/comments/1m9me0a/anyone_remember_the_coin_credit_card_2013/ 53. Coin Card Teardown | Hacker News, https://news.ycombinator.com/item?id=9918273 54. Coin Card Teardown - Adafruit Blog, https://blog.adafruit.com/2015/07/20/coin-card-teardown/ 55. Decoding Circuits: Hardware Reverse Engineering - Technoir - Blog of Satharus, https://satharus.me/tech/2023/11/30/hardware_reverse_engineering.html 56. OptiPlex 3060 MFF (Micro Form Factor) Teardown Removal Guide for Customer Replaceable Units (CRUs) | Dell US, https://www.dell.com/support/kbdoc/en-us/000132141/optiplex-3060-mff-micro-form-factor-teardown-removal-guide-for-customer-replaceable-units-crus 57. Teardown Tuesday: Square Chip and NFC Reader - News - All About Circuits, https://www.allaboutcircuits.com/news/teardown-tuesday-square-chip-and-nfc-reader/ 58. Reverse Engineering Coin Hunt World's Binary Protocol - NCC Group, https://www.nccgroup.com/research-blog/reverse-engineering-coin-hunt-world-s-binary-protocol/ 59. Skimming - FBI, https://www.fbi.gov/how-we-can-help-you/scams-and-safety/common-frauds-and-scams/skimming 60. Payment fraud 101: What businesses need to know | Stripe, https://stripe.com/resources/more/payment-fraud-101 61. Lesson 12: Misuse/Abuse and Fraud - GSA SmartPay Training, https://training.smartpay.gsa.gov/training_travel/lesson12/ 62. App Review Guidelines - Apple Developer, https://developer.apple.com/app-store/review/guidelines/ 63. NFC & SE Platform for Secure Contactless Transactions - Support - Apple Developer, https://developer.apple.com/support/nfc-se-platform/ 64. HCE-based contactless NFC transactions for apps in the European Economic Area (EEA), https://developer.apple.com/support/hce-transactions-in-apps/
