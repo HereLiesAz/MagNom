@@ -8,8 +8,14 @@ lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.11.0"
 kotlin = "2.2.20"
 composeBom = "2024.09.00"
+securityCrypto = "1.1.0-alpha06"
+navigationCompose = "2.8.0-beta06"
+gson = "2.10.1"
 
 [libraries]
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
