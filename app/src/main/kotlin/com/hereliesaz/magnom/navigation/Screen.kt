@@ -13,6 +13,7 @@ sealed class Screen(val route: String) {
     object Transmission : Screen("transmission/{cardId}") {
         fun createRoute(cardId: String) = "transmission/$cardId"
     }
+    object AudioRecording : Screen("audio_recording")
     object CreateCardProfile : Screen("create_card_profile/{swipeData}") {
         fun createRoute(swipeData: String) = "create_card_profile/$swipeData"
     }

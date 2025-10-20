@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,8 +24,26 @@ fun SwipeSelectionScreen(
 ) {
     val swipes by audioFileViewModel.swipes.collectAsState()
     val selectedSwipe by audioFileViewModel.selectedSwipe.collectAsState()
+    val errorMessage by audioFileViewModel.errorMessage.collectAsState()
+    val zcrThreshold by audioFileViewModel.zcrThreshold.collectAsState()
+    val windowSize by audioFileViewModel.windowSize.collectAsState()
 
     Column {
+        errorMessage?.let {
+            Text(text = it)
+        }
+        Text(text = "ZCR Threshold: $zcrThreshold")
+        Slider(
+            value = zcrThreshold.toFloat(),
+            onValueChange = { audioFileViewModel.onZcrThresholdChange(it.toDouble()) },
+            valueRange = 0f..1f
+        )
+        Text(text = "Window Size: $windowSize")
+        Slider(
+            value = windowSize.toFloat(),
+            onValueChange = { audioFileViewModel.onWindowSizeChange(it.toInt()) },
+            valueRange = 256f..4096f
+        )
         LazyColumn {
             items(swipes) { swipe ->
                 Text(
