@@ -1,5 +1,6 @@
 package com.hereliesaz.magnom.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -92,7 +93,10 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
             .fillMaxSize()
             .padding(padding)) {
             items(cardProfiles) { profile ->
-                Text(text = profile.name)
+                Text(
+                    text = profile.name,
+                    modifier = Modifier.clickable { navController.navigate(Screen.Transmission.createRoute(profile.id)) }
+                )
             }
         }
     }

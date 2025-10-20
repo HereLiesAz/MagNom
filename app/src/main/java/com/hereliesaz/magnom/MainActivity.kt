@@ -15,6 +15,7 @@ import com.hereliesaz.magnom.ui.screens.AdvancedRawDataEditorScreen
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.SettingsScreen
+import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 
 class MainActivity : ComponentActivity() {
@@ -33,6 +34,12 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Editor.route) { CardEditorScreen(navController = navController) }
                         composable(Screen.AdvancedEditor.route) { AdvancedRawDataEditorScreen(navController = navController) }
                         composable(Screen.Settings.route) { SettingsScreen(navController = navController) }
+                        composable(Screen.Transmission.route) { backStackEntry ->
+                            TransmissionInterfaceScreen(
+                                navController = navController,
+                                cardId = backStackEntry.arguments?.getString("cardId")
+                            )
+                        }
                     }
                 }
             }

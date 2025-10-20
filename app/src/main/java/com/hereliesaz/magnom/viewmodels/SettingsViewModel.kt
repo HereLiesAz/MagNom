@@ -2,6 +2,7 @@ package com.hereliesaz.magnom.viewmodels
 
 import android.Manifest
 import android.app.Application
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanResult
 import android.content.ComponentName
 import android.content.Context
@@ -13,6 +14,7 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.magnom.services.BleCommunicationService
+import com.hereliesaz.magnom.services.ConnectionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,12 +25,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _discoveredDevices = MutableStateFlow<List<ScanResult>>(emptyList())
     val discoveredDevices: StateFlow<List<ScanResult>> = _discoveredDevices.asStateFlow()
 
+    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             bleService = (service as BleCommunicationService.LocalBinder).getService()
             viewModelScope.launch {
                 bleService?.discoveredDevices?.collect {
                     _discoveredDevices.value = it
+                }
+            }
+            viewModelScope.launch {
+                bleService?.connectionState?.collect {
+                    _connectionState.value = it
                 }
             }
         }
@@ -52,6 +62,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         ) {
             bleService?.startScan()
         }
+    }
+
+    fun connect(device: BluetoothDevice) {
+        bleService?.connect(device)
     }
 
     fun stopScan() {
