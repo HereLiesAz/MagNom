@@ -95,6 +95,13 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                                 showMenu = false
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Parse Audio File") },
+                            onClick = {
+                                navController.navigate(Screen.AudioFileSelection.route)
+                                showMenu = false
+                            }
+                        )
                     }
                 }
             )

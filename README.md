@@ -32,6 +32,10 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Allow zooming and panning of the waveform.
     *   Display the corresponding characters under the waveform.
     *   Allow the user to play the sound of the waveform.
+*   **Audio File Parsing:**
+    *   Allow the user to load an audio file.
+    *   Parse the file for magnetic stripe swipe data.
+    *   Identify and extract all swipes in the file.
 
 ### Next Steps:
 
@@ -39,11 +43,7 @@ The next major phase of development will focus on end-to-end testing with a hard
 
 ### Future Features:
 
-*   **Audio File Parsing:**
-    *   Allow the user to load an audio or video file.
-    *   Parse the file for magnetic stripe swipe data.
-    *   Identify and extract all swipes in the file.
-    *   Create a trimmed audio clip for each swipe.
 *   **In-App Audio Recording:**
     *   Allow the user to record audio from within the app.
     *   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
+*   **Create a trimmed audio clip for each swipe.**
