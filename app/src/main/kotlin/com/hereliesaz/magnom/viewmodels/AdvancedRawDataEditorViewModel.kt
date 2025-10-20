@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.viewmodels
+package magnom.viewmodels
 
 import androidx.lifecycle.ViewModel
 import com.hereliesaz.magnom.logic.ParsedTrack2Data

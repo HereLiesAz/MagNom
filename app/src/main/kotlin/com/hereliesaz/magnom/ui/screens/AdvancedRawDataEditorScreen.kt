@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.ui.screens
+package magnom.ui.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize

@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.data
+package magnom.data
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences

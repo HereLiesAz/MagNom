@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.ui.screens
+package magnom.ui.screens
 
 import android.Manifest
 import android.annotation.SuppressLint

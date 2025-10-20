@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.data
+package magnom.data
 
 data class CardProfile(
     val id: String,

@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.ui.theme
+package magnom.ui.theme
 
 import android.app.Activity
 import android.os.Build

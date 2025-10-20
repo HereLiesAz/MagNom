@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.services
+package magnom.services
 
 import android.Manifest
 import android.annotation.SuppressLint

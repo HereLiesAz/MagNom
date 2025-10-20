@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.logic
+package magnom.logic
 
 class TrackDataGenerator {
 

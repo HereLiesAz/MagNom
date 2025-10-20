@@ -1,4 +1,4 @@
-package com.hereliesaz.magnom.logic
+package magnom.logic
 
 data class ParsedTrack2Data(
     val pan: String,
