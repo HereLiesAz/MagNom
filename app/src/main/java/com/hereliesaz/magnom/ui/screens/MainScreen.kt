@@ -69,6 +69,13 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                                 showMenu = false
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Settings") },
+                            onClick = {
+                                navController.navigate("settings")
+                                showMenu = false
+                            }
+                        )
                     }
                 }
             )
