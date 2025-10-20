@@ -86,6 +86,15 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                                 showMenu = false
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Waveform") },
+                            onClick = {
+                                cardProfiles.firstOrNull()?.let {
+                                    navController.navigate(Screen.Waveform.createRoute(it.id))
+                                }
+                                showMenu = false
+                            }
+                        )
                     }
                 }
             )

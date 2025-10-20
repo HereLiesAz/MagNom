@@ -23,6 +23,10 @@ The project is currently in the **alpha development stage**. The core infrastruc
 *   **User Interface:**
     *   User feedback on transmission status.
     *   Refined UI for the main and transmission screens.
+    *   Advanced Raw Data Editor for viewing and editing raw track data.
+    *   Settings screen for managing BLE peripheral connections.
+*   **Security:**
+    *   App Lock feature with PIN and biometric authentication.
 *   **Bluetooth Low Energy (BLE) Communication:**
     *   A foreground service to manage BLE operations.
     *   Scanning for and discovering nearby BLE peripherals.
@@ -33,3 +37,19 @@ The project is currently in the **alpha development stage**. The core infrastruc
 ### Next Steps:
 
 The next major phase of development will focus on end-to-end testing with a hardware peripheral.
+
+### Future Features:
+
+*   **Waveform Visualization:**
+    *   Display the waveform of the magnetic stripe data.
+    *   Allow zooming and panning of the waveform.
+    *   Display the corresponding characters under the waveform.
+    *   Allow the user to play the sound of the waveform.
+*   **Audio File Parsing:**
+    *   Allow the user to load an audio or video file.
+    *   Parse the file for magnetic stripe swipe data.
+    *   Identify and extract all swipes in the file.
+    *   Create a trimmed audio clip for each swipe.
+*   **In-App Audio Recording:**
+    *   Allow the user to record audio from within the app.
+    *   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
