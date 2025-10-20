@@ -7,6 +7,8 @@ import android.media.MediaFormat
 import android.net.Uri
 import android.util.Log
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -17,6 +19,8 @@ class AudioParser(
     private val zcrThreshold: Double,
     private val windowSize: Int
 ) {
+
+    private var pcmData: ShortArray? = null
 
     fun parse(): Result<List<Swipe>> {
         return when (val result = decodeAudio()) {
@@ -32,7 +36,29 @@ class AudioParser(
         }
     }
 
+    fun createTrimmedWavFile(swipe: Swipe, outputFile: File): Result<String> {
+        return when (val result = decodeAudio()) {
+            is Result.Success -> {
+                try {
+                    val pcmData = result.data
+                    val startSample = swipe.startTime.toInt()
+                    val endSample = swipe.endTime.toInt()
+                    val trimmedData = pcmData.sliceArray(startSample..endSample)
+                    addWavHeader(trimmedData, outputFile)
+                    Result.Success(outputFile.absolutePath)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Result.Error("Failed to create trimmed WAV file.")
+                }
+            }
+            is Result.Error -> result
+        }
+    }
+
     private fun decodeAudio(): Result<ShortArray> {
+        if (pcmData != null) {
+            return Result.Success(pcmData!!)
+        }
         try {
             val extractor = MediaExtractor()
             val fileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")?.fileDescriptor
@@ -92,6 +118,7 @@ class AudioParser(
             val decodedBytes = outputStream.toByteArray()
             val shorts = ShortArray(decodedBytes.size / 2)
             ByteBuffer.wrap(decodedBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
+            pcmData = shorts
             return Result.Success(shorts)
         } catch (e: IOException) {
             e.printStackTrace()
@@ -143,5 +170,40 @@ class AudioParser(
         }
 
         return swipes
+    }
+
+    private fun addWavHeader(pcmData: ShortArray, wavFile: File) {
+        val wavOutputStream = FileOutputStream(wavFile)
+        val sampleRate = 44100
+        val numChannels = 1
+        val bitsPerSample = 16
+        val byteRate = sampleRate * numChannels * bitsPerSample / 8
+        val blockAlign = numChannels * bitsPerSample / 8
+        val dataSize = pcmData.size * 2
+        val fileSize = dataSize + 36
+
+        wavOutputStream.write("RIFF".toByteArray())
+        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(fileSize).array())
+        wavOutputStream.write("WAVE".toByteArray())
+        wavOutputStream.write("fmt ".toByteArray())
+        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(16).array())
+        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(1).array())
+        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(numChannels.toShort()).array())
+        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(sampleRate).array())
+        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(byteRate).array())
+        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(blockAlign.toShort()).array())
+        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(bitsPerSample.toShort()).array())
+        wavOutputStream.write("data".toByteArray())
+        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(dataSize).array())
+        wavOutputStream.write(pcmData.toByteArray())
+
+        wavOutputStream.close()
+    }
+
+    private fun ShortArray.toByteArray(): ByteArray {
+        val byteBuffer = ByteBuffer.allocate(size * 2)
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+        byteBuffer.asShortBuffer().put(this)
+        return byteBuffer.array()
     }
 }

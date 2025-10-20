@@ -29,7 +29,11 @@ import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
 import com.hereliesaz.magnom.viewmodels.AudioRecordingViewModel
 import java.io.File
+import androidx.compose.material3.*
+import androidx.compose.runtime.LaunchedEffect
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioRecordingScreen(
     navController: NavController,
@@ -41,6 +45,13 @@ fun AudioRecordingScreen(
     val audioData by viewModel.audioData.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val savedFilePath by viewModel.savedFilePath.collectAsState()
+    val availableDevices by viewModel.availableDevices.collectAsState()
+    val selectedDevice by viewModel.selectedDevice.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.getAvailableRecordingDevices(context)
+    }
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -84,6 +95,40 @@ fun AudioRecordingScreen(
                 )
             }
         }
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = {
+                expanded = !expanded
+            }
+        ) {
+            TextField(
+                value = selectedDevice?.productName ?: "Select a device",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(
+                        expanded = expanded
+                    )
+                },
+                modifier = Modifier.menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = {
+                    expanded = false
+                }
+            ) {
+                availableDevices.forEach { device ->
+                    DropdownMenuItem(
+                        text = { Text(device.productName) },
+                        onClick = {
+                            viewModel.onDeviceSelected(device)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
         Button(onClick = {
             when (ContextCompat.checkSelfPermission(
                 context,
@@ -93,7 +138,7 @@ fun AudioRecordingScreen(
                     if (isRecording) {
                         viewModel.stopRecording()
                     } else {
-                        viewModel.startRecording(context)
+                        viewModel.startRecording(context, selectedDevice)
                     }
                     isRecording = !isRecording
                 }

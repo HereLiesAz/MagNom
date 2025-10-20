@@ -10,10 +10,12 @@ import com.hereliesaz.magnom.audio.Swipe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 
 class AudioFileViewModel : ViewModel() {
 
     private var context: Context? = null
+    private var audioParser: AudioParser? = null
 
     private val _selectedFileUri = MutableStateFlow<Uri?>(null)
     val selectedFileUri: StateFlow<Uri?> = _selectedFileUri
@@ -33,6 +35,9 @@ class AudioFileViewModel : ViewModel() {
     private val _windowSize = MutableStateFlow(1024)
     val windowSize: StateFlow<Int> = _windowSize
 
+    private val _trimmedFilePath = MutableStateFlow<String?>(null)
+    val trimmedFilePath: StateFlow<String?> = _trimmedFilePath
+
     fun onZcrThresholdChange(threshold: Double) {
         _zcrThreshold.value = threshold
         reparse()
@@ -46,6 +51,7 @@ class AudioFileViewModel : ViewModel() {
     fun onFileSelected(context: Context, uri: Uri) {
         this.context = context
         _selectedFileUri.value = uri
+        audioParser = AudioParser(context, uri, zcrThreshold.value, windowSize.value)
         reparse()
     }
 
@@ -53,11 +59,31 @@ class AudioFileViewModel : ViewModel() {
         _selectedSwipe.value = swipe
     }
 
-    private fun reparse() {
-        val currentUri = selectedFileUri.value ?: return
+    fun createTrimmedWavFile() {
+        val currentSwipe = selectedSwipe.value ?: return
         val currentContext = context ?: return
         viewModelScope.launch {
-            when (val result = AudioParser(currentContext, currentUri, zcrThreshold.value, windowSize.value).parse()) {
+            val outputFile = File(currentContext.cacheDir, "trimmed_swipe.wav")
+            when (val result = audioParser?.createTrimmedWavFile(currentSwipe, outputFile)) {
+                is Result.Success -> {
+                    _trimmedFilePath.value = result.data
+                    _errorMessage.value = null
+                }
+                is Result.Error -> {
+                    _trimmedFilePath.value = null
+                    _errorMessage.value = result.message
+                }
+                else -> {
+                    _trimmedFilePath.value = null
+                    _errorMessage.value = "An unknown error occurred"
+                }
+            }
+        }
+    }
+
+    private fun reparse() {
+        viewModelScope.launch {
+            when (val result = audioParser?.parse()) {
                 is Result.Success -> {
                     _swipes.value = result.data
                     _errorMessage.value = null
@@ -65,6 +91,10 @@ class AudioFileViewModel : ViewModel() {
                 is Result.Error -> {
                     _swipes.value = emptyList()
                     _errorMessage.value = result.message
+                }
+                else -> {
+                    _swipes.value = emptyList()
+                    _errorMessage.value = "An unknown error occurred"
                 }
             }
         }

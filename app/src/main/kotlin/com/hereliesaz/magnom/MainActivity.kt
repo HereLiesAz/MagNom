@@ -37,13 +37,13 @@ class MainActivity : ComponentActivity() {
 
                     Row(modifier = Modifier.fillMaxSize()) {
                         AzNavRail {
-                            azMenuItem(id = "main", text = "Main") {
+                            azRailItem(id = "main", text = "Main") {
                                 navController.navigate(Screen.Main.route)
                             }
-                            azMenuItem(id = "audio_file_selection", text = "Parse Audio File") {
+                            azRailItem(id = "audio_file_selection", text = "Parse Audio File") {
                                 navController.navigate(Screen.AudioFileSelection.route)
                             }
-                            azMenuItem(id = "audio_recording", text = "Record Audio") {
+                            azRailItem(id = "audio_recording", text = "Record Audio") {
                                 navController.navigate(Screen.AudioRecording.route)
                             }
                         }
