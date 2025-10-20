@@ -108,8 +108,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = """No card profiles saved.
-Click the '+' button to add one.""",
+                        text = "No card profiles saved. \n Click the '+' button to add one.",
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyLarge
                     )
