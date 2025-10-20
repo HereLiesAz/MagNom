@@ -4,11 +4,8 @@ import android.app.Application
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,10 +40,7 @@ fun WaveformScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         IconButton(onClick = { waveformViewModel.togglePlayback() }) {
-            Icon(
-                imageVector = if (uiState.isPlaying) Icons.Default.Close else Icons.Default.PlayArrow,
-                contentDescription = if (uiState.isPlaying) "Stop" else "Play"
-            )
+            Text(if (uiState.isPlaying) "Stop" else "Play")
         }
 
         uiState.waveformData?.let { data ->
