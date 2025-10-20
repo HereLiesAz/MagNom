@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.hereliesaz.magnom.navigation.Screen
+import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.WaveformScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 
@@ -23,9 +25,15 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "waveform") {
-                        composable("waveform") {
-                            WaveformScreen(navController = navController)
+                    NavHost(navController = navController, startDestination = Screen.Main.route) {
+                        composable(Screen.Main.route) {
+                            MainScreen(navController = navController)
+                        }
+                        composable(Screen.Waveform.route) { backStackEntry ->
+                            val cardId = backStackEntry.arguments?.getString("cardId")
+                            if (cardId != null) {
+                                WaveformScreen(navController = navController, cardId = cardId)
+                            }
                         }
                     }
                 }

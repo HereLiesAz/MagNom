@@ -12,30 +12,39 @@ import com.hereliesaz.magnom.logic.WaveformDataGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class WaveformState(
     val waveformData: FloatArray? = null,
-    val trackData: String? = null,
     val zoom: Float = 1f,
-    val panOffset: Float = 0f
+    val panOffset: Float = 0f,
+    val trackData: String? = null,
+    val isPlaying: Boolean = false
 )
 
-class WaveformViewModel(application: Application, private val cardId: String) : AndroidViewModel(application) {
+class WaveformViewModel(private val cardRepository: CardRepository, private val cardId: String) : ViewModel() {
 
     private val waveformDataGenerator = WaveformDataGenerator()
-    private val cardRepository = CardRepository(application)
     private val trackDataGenerator = TrackDataGenerator()
+    private val audioPlayer = AudioPlayer()
 
     private val _uiState = MutableStateFlow(WaveformState())
     val uiState: StateFlow<WaveformState> = _uiState.asStateFlow()
 
-    fun generateWaveform() {
-        cardRepository.getCardProfile(cardId)?.let {
-            val track2 = trackDataGenerator.generateTrack2(it.pan, it.expirationDate, it.serviceCode)
-            _uiState.value = WaveformState(
-                waveformData = waveformDataGenerator.generate(track2),
-                trackData = track2
-            )
+    init {
+        loadCardData()
+    }
+
+    private fun loadCardData() {
+        viewModelScope.launch {
+            val card = cardRepository.getCardProfile(cardId)
+            card?.let {
+                val track2 = trackDataGenerator.generateTrack2(it.pan, it.expirationDate, it.serviceCode)
+                _uiState.value = _uiState.value.copy(
+                    waveformData = waveformDataGenerator.generate(track2),
+                    trackData = track2
+                )
+            }
         }
     }
 

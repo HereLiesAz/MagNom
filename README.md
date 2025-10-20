@@ -18,7 +18,6 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   View a list of all saved card profiles.
 *   **Magnetic Stripe Logic:**
     *   Business logic for generating valid Track 1 and Track 2 magnetic stripe data strings.
-    *   Real-time parsing and validation of raw Track 2 data in the "Advanced Editor".
     *   Correct calculation of the Longitudinal Redundancy Check (LRC).
 *   **User Interface:**
     *   User feedback on transmission status.
@@ -33,6 +32,11 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Connecting to a selected peripheral and managing the connection state.
     *   A reliable queuing mechanism for writing data to the peripheral's characteristics.
     *   Functions to transmit track data and send emulation commands.
+*   **Waveform Visualization:**
+    *   Display the waveform of the magnetic stripe data.
+    *   Allow zooming and panning of the waveform.
+    *   Display the corresponding characters under the waveform.
+    *   Allow the user to play the sound of the waveform.
 
 ### Next Steps:
 
