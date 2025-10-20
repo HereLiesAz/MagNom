@@ -1,4 +1,4 @@
-package magnom.viewmodels
+package com.hereliesaz.magnom.viewmodels
 
 import android.app.Application
 import android.content.ComponentName
@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 
 class TransmissionInterfaceViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {

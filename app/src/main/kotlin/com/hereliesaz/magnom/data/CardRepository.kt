@@ -1,10 +1,11 @@
-package magnom.data
+package com.hereliesaz.magnom.data
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.google.gson.Gson
 
+@Suppress("DEPRECATION")
 class CardRepository(context: Context) {
 
     private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)

@@ -1,10 +1,11 @@
-package magnom.viewmodels
+package com.hereliesaz.magnom.viewmodels
 
 import androidx.lifecycle.ViewModel
 import com.hereliesaz.magnom.logic.ParsedTrack2Data
 import com.hereliesaz.magnom.logic.TrackDataParser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 data class AdvancedEditorState(
     val rawTrack1: String = "",
@@ -15,7 +16,7 @@ data class AdvancedEditorState(
 
 class AdvancedRawDataEditorViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(AdvancedEditorState())
-    val uiState: StateFlow<AdvancedEditorState> = _uiState
+    val uiState: StateFlow<AdvancedEditorState> = _uiState.asStateFlow()
 
     private val trackDataParser = TrackDataParser()
 

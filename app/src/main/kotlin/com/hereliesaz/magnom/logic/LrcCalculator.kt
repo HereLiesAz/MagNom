@@ -1,4 +1,4 @@
-package magnom.logic
+package com.hereliesaz.magnom.logic
 
 object LrcCalculator {
     /**

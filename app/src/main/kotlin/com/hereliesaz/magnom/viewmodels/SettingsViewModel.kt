@@ -1,4 +1,4 @@
-package magnom.viewmodels
+package com.hereliesaz.magnom.viewmodels
 
 import android.Manifest
 import android.app.Application

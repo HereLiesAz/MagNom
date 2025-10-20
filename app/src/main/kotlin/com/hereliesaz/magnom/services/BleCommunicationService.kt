@@ -1,4 +1,4 @@
-package magnom.services
+package com.hereliesaz.magnom.services
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -154,6 +154,7 @@ class BleCommunicationService : Service() {
         }
     }
 
+    @Suppress("DEPRECATION")
     fun writeTrackData(track1: String, track2: String) {
         _transmissionStatus.value = "Transmitting..."
         track1Characteristic?.let {
@@ -167,6 +168,7 @@ class BleCommunicationService : Service() {
         processWriteQueue()
     }
 
+    @Suppress("DEPRECATION")
     fun sendTransmitCommand() {
         _transmissionStatus.value = "Transmitting..."
         controlPointCharacteristic?.let {
@@ -176,6 +178,7 @@ class BleCommunicationService : Service() {
         processWriteQueue()
     }
 
+    @Suppress("DEPRECATION")
     private fun processWriteQueue() {
         if (isWriting || writeQueue.isEmpty()) {
             return

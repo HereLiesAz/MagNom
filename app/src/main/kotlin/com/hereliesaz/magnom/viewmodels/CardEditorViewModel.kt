@@ -1,4 +1,4 @@
-package magnom.viewmodels
+package com.hereliesaz.magnom.viewmodels
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -8,14 +8,22 @@ import com.hereliesaz.magnom.data.CardRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+data class CardEditorState(
+    val name: String = "",
+    val pan: String = "",
+    val expirationDate: String = "",
+    val serviceCode: String = ""
+)
 
 class CardEditorViewModel(application: Application) : AndroidViewModel(application) {
 
     private val cardRepository = CardRepository(application)
     private val _uiState = MutableStateFlow(CardEditorState())
-    val uiState: StateFlow<CardEditorState> = _uiState
+    val uiState: StateFlow<CardEditorState> = _uiState.asStateFlow()
 
     fun onNameChange(name: String) {
         _uiState.value = _uiState.value.copy(name = name)

@@ -1,4 +1,4 @@
-package magnom.navigation
+package com.hereliesaz.magnom.navigation
 
 sealed class Screen(val route: String) {
     object Main : Screen("main")
