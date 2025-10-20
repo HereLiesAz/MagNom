@@ -5,6 +5,9 @@ sealed class Screen(val route: String) {
     object Editor : Screen("editor")
     object AdvancedEditor : Screen("advanced_editor")
     object Settings : Screen("settings")
+    object Waveform : Screen("waveform/{cardId}") {
+        fun createRoute(cardId: String) = "waveform/$cardId"
+    }
     object Transmission : Screen("transmission/{cardId}") {
         fun createRoute(cardId: String) = "transmission/$cardId"
     }

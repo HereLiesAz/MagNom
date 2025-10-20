@@ -30,9 +30,6 @@ The project will follow the following workflow:
     *   Integrate the service with the app logic.
 6.  **Phase 6: End-to-End System Testing and Debugging:**
     *   Status: In Progress
-    *   Refined UI and UX for the main and transmission screens.
-    *   Implemented Track 1 data generation.
-    *   Added user feedback for transmission status.
     *   Set up the test environment.
     *   Perform integration testing.
     *   Test edge cases and debug.
