@@ -1,4 +1,4 @@
-package magnom.ui.theme
+package com.hereliesaz.magnom.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
