@@ -55,7 +55,9 @@ fun WaveformScreen(
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
                         waveformViewModel.onZoom(zoom)
-                        waveformViewModel.onPan(pan.x)
+                        val maxPan = (size.width * uiState.zoom) - size.width
+                        val newPan = (uiState.panOffset + pan.x).coerceIn(0f, maxPan)
+                        waveformViewModel.setPan(newPan)
                     }
                 }
             ) {
@@ -76,7 +78,7 @@ fun WaveformScreen(
                 }
 
                 val trackData = uiState.trackData ?: ""
-                val charStep = step * 8 // 8 bits per character
+                val charStep = step * 5 // 5 bits per character for Track 2
                 for (i in trackData.indices) {
                     drawText(
                         textMeasurer = textMeasurer,

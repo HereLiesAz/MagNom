@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -16,7 +15,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MagNom">
-        <service android:name=".services.BleCommunicationService" android:enabled="true" android:foregroundServiceType="connectedDevice" />
+        <service android:name=".services.BleCommunicationService" android:enabled="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
