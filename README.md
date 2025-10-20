@@ -36,6 +36,8 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Allow the user to load an audio file.
     *   Parse the file for magnetic stripe swipe data.
     *   Identify and extract all swipes in the file.
+*   **In-App Audio Recording:**
+    *   Allow the user to record audio from within the app.
 
 ### Next Steps:
 
@@ -43,7 +45,5 @@ The next major phase of development will focus on end-to-end testing with a hard
 
 ### Future Features:
 
-*   **In-App Audio Recording:**
-    *   Allow the user to record audio from within the app.
     *   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
 *   **Create a trimmed audio clip for each swipe.**

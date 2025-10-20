@@ -63,5 +63,17 @@ fun SwipeSelectionScreen(
         ) {
             Text("Create New Profile")
         }
+        Button(
+            onClick = {
+                audioFileViewModel.createTrimmedWavFile()
+            },
+            enabled = selectedSwipe != null
+        ) {
+            Text("Create Trimmed Clip")
+        }
+        val trimmedFilePath by audioFileViewModel.trimmedFilePath.collectAsState()
+        trimmedFilePath?.let {
+            Text("Trimmed file saved to: $it")
+        }
     }
 }

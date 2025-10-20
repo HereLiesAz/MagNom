@@ -3,7 +3,9 @@ package com.hereliesaz.magnom.viewmodels
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import androidx.core.app.ActivityCompat
@@ -35,7 +37,23 @@ class AudioRecordingViewModel : ViewModel() {
     private val _savedFilePath = MutableStateFlow<String?>(null)
     val savedFilePath: StateFlow<String?> = _savedFilePath
 
-    fun startRecording(context: Context) {
+    private val _availableDevices = MutableStateFlow<List<AudioDeviceInfo>>(emptyList())
+    val availableDevices: StateFlow<List<AudioDeviceInfo>> = _availableDevices
+
+    private val _selectedDevice = MutableStateFlow<AudioDeviceInfo?>(null)
+    val selectedDevice: StateFlow<AudioDeviceInfo?> = _selectedDevice
+
+    fun getAvailableRecordingDevices(context: Context) {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+        _availableDevices.value = devices.toList()
+    }
+
+    fun onDeviceSelected(device: AudioDeviceInfo) {
+        _selectedDevice.value = device
+    }
+
+    fun startRecording(context: Context, device: AudioDeviceInfo?) {
         if (ActivityCompat.checkSelfPermission(
                 context,
                 Manifest.permission.RECORD_AUDIO
@@ -45,13 +63,23 @@ class AudioRecordingViewModel : ViewModel() {
             return
         }
         outputFile = File(context.cacheDir, "recording.pcm")
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            44100,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            1024
-        )
+        val audioSource = device?.id ?: MediaRecorder.AudioSource.MIC
+        audioRecord = AudioRecord.Builder()
+            .setAudioSource(audioSource)
+            .setAudioFormat(
+                AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(44100)
+                    .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                    .build()
+            )
+            .setBufferSizeInBytes(1024)
+            .build()
+
+        if (device != null) {
+            audioRecord?.preferredDevice = device
+        }
+
         audioRecord?.startRecording()
         isRecording = true
         viewModelScope.launch {
