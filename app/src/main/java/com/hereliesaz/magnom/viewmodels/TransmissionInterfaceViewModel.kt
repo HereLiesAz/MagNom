@@ -17,24 +17,36 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 
 class TransmissionInterfaceViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
 
     private val cardRepository = CardRepository(application)
+    private var serviceCollectionJob: Job? = null
     private val trackDataGenerator = TrackDataGenerator()
     private val cardId: String = savedStateHandle.get<String>("cardId")!!
 
     private var bleService: BleCommunicationService? = null
     private val _cardProfile = MutableStateFlow<CardProfile?>(null)
     val cardProfile: StateFlow<CardProfile?> = _cardProfile.asStateFlow()
+    private val _transmissionStatus = MutableStateFlow("")
+    val transmissionStatus: StateFlow<String> = _transmissionStatus.asStateFlow()
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            bleService = (service as BleCommunicationService.LocalBinder).getService()
+            val binder = service as BleCommunicationService.LocalBinder
+            bleService = binder.getService()
+            serviceCollectionJob = viewModelScope.launch {
+                bleService?.transmissionStatus?.collect { status ->
+                    _transmissionStatus.value = status
+                }
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
             bleService = null
+            serviceCollectionJob?.cancel()
         }
     }
 
@@ -49,9 +61,9 @@ class TransmissionInterfaceViewModel(application: Application, savedStateHandle:
 
     fun transmit() {
         _cardProfile.value?.let { profile ->
-            // For now, we'll just generate Track 2 data as Track 1 is not fully supported
+            val track1 = trackDataGenerator.generateTrack1(profile.pan, profile.name, profile.expirationDate, profile.serviceCode)
             val track2 = trackDataGenerator.generateTrack2(profile.pan, profile.expirationDate, profile.serviceCode)
-            bleService?.writeTrackData("", track2)
+            bleService?.writeTrackData(track1, track2)
             bleService?.sendTransmitCommand()
         }
     }

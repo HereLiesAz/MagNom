@@ -61,6 +61,9 @@ class BleCommunicationService : Service() {
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
+    private val _transmissionStatus = MutableStateFlow("")
+    val transmissionStatus: StateFlow<String> = _transmissionStatus.asStateFlow()
+
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -101,6 +104,14 @@ class BleCommunicationService : Service() {
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
             super.onCharacteristicWrite(gatt, characteristic, status)
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                if (writeQueue.isEmpty()) {
+                    _transmissionStatus.value = "Transmission successful!"
+                }
+            } else {
+                _transmissionStatus.value = "Transmission failed!"
+                writeQueue.clear()
+            }
             isWriting = false
             processWriteQueue()
         }
@@ -144,6 +155,7 @@ class BleCommunicationService : Service() {
     }
 
     fun writeTrackData(track1: String, track2: String) {
+        _transmissionStatus.value = "Transmitting..."
         track1Characteristic?.let {
             it.value = track1.toByteArray()
             writeQueue.add(it)
@@ -156,6 +168,7 @@ class BleCommunicationService : Service() {
     }
 
     fun sendTransmitCommand() {
+        _transmissionStatus.value = "Transmitting..."
         controlPointCharacteristic?.let {
             it.value = byteArrayOf(0x01)
             writeQueue.add(it)

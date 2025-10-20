@@ -17,9 +17,12 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Securely store card profiles on-device using `EncryptedSharedPreferences` from the Jetpack Security library.
     *   View a list of all saved card profiles.
 *   **Magnetic Stripe Logic:**
-    *   Business logic for generating valid Track 2 magnetic stripe data strings.
+    *   Business logic for generating valid Track 1 and Track 2 magnetic stripe data strings.
     *   Real-time parsing and validation of raw Track 2 data in the "Advanced Editor".
     *   Correct calculation of the Longitudinal Redundancy Check (LRC).
+*   **User Interface:**
+    *   User feedback on transmission status.
+    *   Refined UI for the main and transmission screens.
 *   **Bluetooth Low Energy (BLE) Communication:**
     *   A foreground service to manage BLE operations.
     *   Scanning for and discovering nearby BLE peripherals.
@@ -29,4 +32,4 @@ The project is currently in the **alpha development stage**. The core infrastruc
 
 ### Next Steps:
 
-The next major phase of development will focus on end-to-end testing with a hardware peripheral and refining the user interface and experience.
+The next major phase of development will focus on end-to-end testing with a hardware peripheral.
