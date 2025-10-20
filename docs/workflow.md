@@ -33,6 +33,9 @@ The project will follow the following workflow:
     *   Refined UI and UX for the main and transmission screens.
     *   Implemented Track 1 data generation.
     *   Added user feedback for transmission status.
+    *   Implemented Advanced Raw Data Editor screen.
+    *   Implemented Settings screen for BLE management.
+    *   Implemented App Lock feature with PIN and biometrics.
     *   Set up the test environment.
     *   Perform integration testing.
     *   Test edge cases and debug.
