@@ -22,7 +22,7 @@ class TransmissionInterfaceViewModel(application: Application, savedStateHandle:
 
     private val cardRepository = CardRepository(application)
     private val trackDataGenerator = TrackDataGenerator()
-    private val cardId: String = requireNotNull(savedStateHandle.get<String>("cardId")) { "cardId argument is required." }
+    private val cardId: String = savedStateHandle.get<String>("cardId")!!
 
     private var bleService: BleCommunicationService? = null
     private val _cardProfile = MutableStateFlow<CardProfile?>(null)

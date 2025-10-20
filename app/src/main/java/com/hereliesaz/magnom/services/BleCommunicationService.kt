@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
+import java.util.concurrent.ConcurrentLinkedQueue
 
 enum class ConnectionState {
     DISCONNECTED, CONNECTING, CONNECTED
@@ -39,14 +40,15 @@ class BleCommunicationService : Service() {
     private val binder = LocalBinder()
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private var bluetoothGatt: BluetoothGatt? = null
+    private val writeQueue = ConcurrentLinkedQueue<BluetoothGattCharacteristic>()
+    private var isWriting = false
+
 
     // UUIDs from documentation
-    companion object {
-        private val MAG_SPOOF_SERVICE_UUID: UUID = UUID.fromString("0000BEEF-1212-EFEF-1523-785FEABCD123")
-        private val TRACK_1_DATA_UUID: UUID = UUID.fromString("0000B0B1-1212-EFEF-1523-785FEABCD123")
-        private val TRACK_2_DATA_UUID: UUID = UUID.fromString("0000B0B2-1212-EFEF-1523-785FEABCD123")
-        private val CONTROL_POINT_UUID: UUID = UUID.fromString("0000B0B3-1212-EFEF-1523-785FEABCD123")
-    }
+    private val magSpoofServiceUUID: UUID = UUID.fromString("0000BEEF-1212-EFEF-1523-785FEABCD123")
+    private val track1DataUUID: UUID = UUID.fromString("0000B0B1-1212-EFEF-1523-785FEABCD123")
+    private val track2DataUUID: UUID = UUID.fromString("0000B0B2-1212-EFEF-1523-785FEABCD123")
+    private val controlPointUUID: UUID = UUID.fromString("0000B0B3-1212-EFEF-1523-785FEABCD123")
 
     private var track1Characteristic: BluetoothGattCharacteristic? = null
     private var track2Characteristic: BluetoothGattCharacteristic? = null
@@ -75,12 +77,16 @@ class BleCommunicationService : Service() {
                 BluetoothProfile.STATE_CONNECTED -> {
                     _connectionState.value = ConnectionState.CONNECTED
                     bluetoothGatt = gatt
+                    writeQueue.clear()
+                    isWriting = false
                     bluetoothGatt?.discoverServices()
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     _connectionState.value = ConnectionState.DISCONNECTED
                     bluetoothGatt?.close()
                     bluetoothGatt = null
+                    writeQueue.clear()
+                    isWriting = false
                 }
             }
         }
@@ -91,6 +97,12 @@ class BleCommunicationService : Service() {
             track1Characteristic = service?.getCharacteristic(track1DataUUID)
             track2Characteristic = service?.getCharacteristic(track2DataUUID)
             controlPointCharacteristic = service?.getCharacteristic(controlPointUUID)
+        }
+
+        override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+            super.onCharacteristicWrite(gatt, characteristic, status)
+            isWriting = false
+            processWriteQueue()
         }
     }
 
@@ -132,24 +144,32 @@ class BleCommunicationService : Service() {
     }
 
     fun writeTrackData(track1: String, track2: String) {
-        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
-            track1Characteristic?.let {
-                it.value = track1.toByteArray()
-                bluetoothGatt?.writeCharacteristic(it)
-            }
-            track2Characteristic?.let {
-                it.value = track2.toByteArray()
-                bluetoothGatt?.writeCharacteristic(it)
-            }
+        track1Characteristic?.let {
+            it.value = track1.toByteArray()
+            writeQueue.add(it)
         }
+        track2Characteristic?.let {
+            it.value = track2.toByteArray()
+            writeQueue.add(it)
+        }
+        processWriteQueue()
     }
 
     fun sendTransmitCommand() {
+        controlPointCharacteristic?.let {
+            it.value = byteArrayOf(0x01)
+            writeQueue.add(it)
+        }
+        processWriteQueue()
+    }
+
+    private fun processWriteQueue() {
+        if (isWriting || writeQueue.isEmpty()) {
+            return
+        }
         if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
-            controlPointCharacteristic?.let {
-                it.value = byteArrayOf(0x01)
-                bluetoothGatt?.writeCharacteristic(it)
-            }
+            isWriting = true
+            bluetoothGatt?.writeCharacteristic(writeQueue.poll())
         }
     }
 
