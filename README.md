@@ -1,1 +1,32 @@
 # MagNom
+
+MagNom is an Android application designed to serve as a comprehensive tool for researchers, developers, and hobbyists working with magnetic stripe card technology. It provides a user-friendly interface for creating, managing, and securely storing magnetic stripe card profiles. The application is designed to interface with custom hardware peripherals via Bluetooth Low Energy (BLE) to perform magnetic stripe emulation.
+
+## Current Status
+
+The project is currently in the **alpha development stage**. The core infrastructure and several key features of the Android application have been implemented.
+
+### Implemented Features:
+
+*   **Application Architecture:**
+    *   Modern MVVM (Model-View-ViewModel) architecture.
+    *   UI built with Jetpack Compose.
+    *   Type-safe navigation using Jetpack Navigation.
+*   **Card Profile Management:**
+    *   Create and edit card profiles (name, PAN, expiration, service code).
+    *   Securely store card profiles on-device using `EncryptedSharedPreferences` from the Jetpack Security library.
+    *   View a list of all saved card profiles.
+*   **Magnetic Stripe Logic:**
+    *   Business logic for generating valid Track 2 magnetic stripe data strings.
+    *   Real-time parsing and validation of raw Track 2 data in the "Advanced Editor".
+    *   Correct calculation of the Longitudinal Redundancy Check (LRC).
+*   **Bluetooth Low Energy (BLE) Communication:**
+    *   A foreground service to manage BLE operations.
+    *   Scanning for and discovering nearby BLE peripherals.
+    *   Connecting to a selected peripheral and managing the connection state.
+    *   A reliable queuing mechanism for writing data to the peripheral's characteristics.
+    *   Functions to transmit track data and send emulation commands.
+
+### Next Steps:
+
+The next major phase of development will focus on end-to-end testing with a hardware peripheral and refining the user interface and experience.
