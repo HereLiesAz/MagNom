@@ -1,10 +1,12 @@
 package com.hereliesaz.magnom.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -28,6 +30,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.viewmodels.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,14 +68,14 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                         DropdownMenuItem(
                             text = { Text("Advanced Editor") },
                             onClick = {
-                                navController.navigate("advanced_editor")
+                                navController.navigate(Screen.AdvancedEditor.route)
                                 showMenu = false
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Settings") },
                             onClick = {
-                                navController.navigate("settings")
+                                navController.navigate(Screen.Settings.route)
                                 showMenu = false
                             }
                         )
@@ -81,8 +84,8 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate("editor") }) {
-                Text("+")
+            FloatingActionButton(onClick = { navController.navigate(Screen.Editor.route) }) {
+                Icon(Icons.Filled.Add, contentDescription = "Add new card profile")
             }
         }
     ) { padding ->
@@ -90,7 +93,10 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
             .fillMaxSize()
             .padding(padding)) {
             items(cardProfiles) { profile ->
-                Text(text = profile.name)
+                Text(
+                    text = profile.name,
+                    modifier = Modifier.clickable { navController.navigate(Screen.Transmission.createRoute(profile.id)) }
+                )
             }
         }
     }

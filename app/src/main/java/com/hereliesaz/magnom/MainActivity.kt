@@ -10,10 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.ui.screens.AdvancedRawDataEditorScreen
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.SettingsScreen
+import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,11 +29,17 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "main") {
-                        composable("main") { MainScreen(navController = navController) }
-                        composable("editor") { CardEditorScreen(navController = navController) }
-                        composable("advanced_editor") { AdvancedRawDataEditorScreen(navController = navController) }
-                        composable("settings") { SettingsScreen(navController = navController) }
+                    NavHost(navController = navController, startDestination = Screen.Main.route) {
+                        composable(Screen.Main.route) { MainScreen(navController = navController) }
+                        composable(Screen.Editor.route) { CardEditorScreen(navController = navController) }
+                        composable(Screen.AdvancedEditor.route) { AdvancedRawDataEditorScreen(navController = navController) }
+                        composable(Screen.Settings.route) { SettingsScreen(navController = navController) }
+                        composable(Screen.Transmission.route) { backStackEntry ->
+                            TransmissionInterfaceScreen(
+                                navController = navController,
+                                cardId = backStackEntry.arguments?.getString("cardId")
+                            )
+                        }
                     }
                 }
             }

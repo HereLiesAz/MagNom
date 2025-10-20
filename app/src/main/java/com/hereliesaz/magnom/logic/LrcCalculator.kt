@@ -6,11 +6,7 @@ object LrcCalculator {
      * The LRC is calculated by performing a bitwise XOR on all characters of the track data.
      */
     fun calculate(trackData: String): Char {
-        var lrc = 0
-        for (char in trackData) {
-            lrc = lrc xor char.code
-        }
-        // The result of the XOR operation is a single character.
+        val lrc = trackData.fold(0) { acc, char -> acc xor char.code }
         return lrc.toChar()
     }
 

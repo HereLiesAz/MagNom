@@ -16,8 +16,8 @@ class TrackDataParser {
      * @return A ParsedTrack2Data object, or null if parsing fails.
      */
     fun parseTrack2(track2Data: String): ParsedTrack2Data? {
-        // 1. Verify Start and End Sentinels and LRC
-        if (track2Data.first() != ';' || track2Data[track2Data.length - 2] != '?') {
+        // 1. Verify length, Start and End Sentinels and LRC
+        if (track2Data.length < 2 || track2Data.first() != ';' || track2Data[track2Data.length - 2] != '?') {
             return null
         }
         if (!LrcCalculator.validate(track2Data)) {

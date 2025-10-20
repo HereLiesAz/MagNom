@@ -28,8 +28,9 @@ class CardRepository(context: Context) {
     }
 
     fun getAllCardProfiles(): List<CardProfile> {
-        return sharedPreferences.all.map {
-            gson.fromJson(it.value as String, CardProfile::class.java)
+        return sharedPreferences.all.keys.mapNotNull { key ->
+            val json = sharedPreferences.getString(key, null)
+            json?.let { gson.fromJson(it, CardProfile::class.java) }
         }
     }
 

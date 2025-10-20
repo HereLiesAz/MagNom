@@ -1,12 +1,18 @@
 package com.hereliesaz.magnom.services
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
@@ -17,24 +23,74 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import com.hereliesaz.magnom.logic.TrackDataGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 
+enum class ConnectionState {
+    DISCONNECTED, CONNECTING, CONNECTED
+}
+
+@SuppressLint("MissingPermission")
 class BleCommunicationService : Service() {
 
     private val binder = LocalBinder()
     private lateinit var bluetoothAdapter: BluetoothAdapter
+    private var bluetoothGatt: BluetoothGatt? = null
+
+    // UUIDs from documentation
+    companion object {
+        private val MAG_SPOOF_SERVICE_UUID: UUID = UUID.fromString("0000BEEF-1212-EFEF-1523-785FEABCD123")
+        private val TRACK_1_DATA_UUID: UUID = UUID.fromString("0000B0B1-1212-EFEF-1523-785FEABCD123")
+        private val TRACK_2_DATA_UUID: UUID = UUID.fromString("0000B0B2-1212-EFEF-1523-785FEABCD123")
+        private val CONTROL_POINT_UUID: UUID = UUID.fromString("0000B0B3-1212-EFEF-1523-785FEABCD123")
+    }
+
+    private var track1Characteristic: BluetoothGattCharacteristic? = null
+    private var track2Characteristic: BluetoothGattCharacteristic? = null
+    private var controlPointCharacteristic: BluetoothGattCharacteristic? = null
+
+
     private val _discoveredDevices = MutableStateFlow<List<ScanResult>>(emptyList())
-    val discoveredDevices: StateFlow<List<ScanResult>> = _discoveredDevices
+    val discoveredDevices: StateFlow<List<ScanResult>> = _discoveredDevices.asStateFlow()
+
+    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             super.onScanResult(callbackType, result)
-            val currentList = _discoveredDevices.value.toMutableList()
-            if (result !in currentList) {
-                currentList.add(result)
-                _discoveredDevices.value = currentList
+            if (_discoveredDevices.value.none { it.device.address == result.device.address }) {
+                _discoveredDevices.value = _discoveredDevices.value + result
             }
+        }
+    }
+
+    private val gattCallback = object : BluetoothGattCallback() {
+        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+            when (newState) {
+                BluetoothProfile.STATE_CONNECTED -> {
+                    _connectionState.value = ConnectionState.CONNECTED
+                    bluetoothGatt = gatt
+                    bluetoothGatt?.discoverServices()
+                }
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    _connectionState.value = ConnectionState.DISCONNECTED
+                    bluetoothGatt?.close()
+                    bluetoothGatt = null
+                }
+            }
+        }
+
+        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+            super.onServicesDiscovered(gatt, status)
+            val service = gatt?.getService(magSpoofServiceUUID)
+            track1Characteristic = service?.getCharacteristic(track1DataUUID)
+            track2Characteristic = service?.getCharacteristic(track2DataUUID)
+            controlPointCharacteristic = service?.getCharacteristic(controlPointUUID)
         }
     }
 
@@ -46,25 +102,63 @@ class BleCommunicationService : Service() {
     }
 
     fun startScan() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
+        if (checkPermission(Manifest.permission.BLUETOOTH_SCAN)) {
             val scanSettings = ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build()
+            _discoveredDevices.value = emptyList() // Clear previous results
             bluetoothAdapter.bluetoothLeScanner.startScan(null, scanSettings, scanCallback)
         }
     }
 
     fun stopScan() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
+        if (checkPermission(Manifest.permission.BLUETOOTH_SCAN)) {
             bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
         }
     }
+
+    fun connect(device: BluetoothDevice) {
+        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+            stopScan()
+            _connectionState.value = ConnectionState.CONNECTING
+            device.connectGatt(this, false, gattCallback)
+        }
+    }
+
+    fun disconnect() {
+        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+            bluetoothGatt?.disconnect()
+        }
+    }
+
+    fun writeTrackData(track1: String, track2: String) {
+        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+            track1Characteristic?.let {
+                it.value = track1.toByteArray()
+                bluetoothGatt?.writeCharacteristic(it)
+            }
+            track2Characteristic?.let {
+                it.value = track2.toByteArray()
+                bluetoothGatt?.writeCharacteristic(it)
+            }
+        }
+    }
+
+    fun sendTransmitCommand() {
+        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+            controlPointCharacteristic?.let {
+                it.value = byteArrayOf(0x01)
+                bluetoothGatt?.writeCharacteristic(it)
+            }
+        }
+    }
+
 
     private fun startForegroundService() {
         val channelId = "ble_service_channel"
         val channelName = "BLE Communication Service"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_NONE)
+            val chan = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
             val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(chan)
         }
@@ -74,6 +168,10 @@ class BleCommunicationService : Service() {
             .setContentText("BLE Service is running.")
             .build()
         startForeground(1, notification)
+    }
+
+    private fun checkPermission(permission: String): Boolean {
+        return ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
     }
 
     override fun onBind(intent: Intent): IBinder {
