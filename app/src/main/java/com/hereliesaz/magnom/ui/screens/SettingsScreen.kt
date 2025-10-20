@@ -39,8 +39,8 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
             Text("Stop Scan")
         }
         LazyColumn {
-            items(discoveredDevices) { device ->
-                Text(device.device.address)
+            items(items = discoveredDevices, key = { it.device.address }) { device ->
+                Text(device.device.name ?: device.device.address)
             }
         }
     }
