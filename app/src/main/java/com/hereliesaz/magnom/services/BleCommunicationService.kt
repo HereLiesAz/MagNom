@@ -41,10 +41,12 @@ class BleCommunicationService : Service() {
     private var bluetoothGatt: BluetoothGatt? = null
 
     // UUIDs from documentation
-    private val magSpoofServiceUUID: UUID = UUID.fromString("0000BEEF-1212-EFEF-1523-785FEABCD123")
-    private val track1DataUUID: UUID = UUID.fromString("0000B0B1-1212-EFEF-1523-785FEABCD123")
-    private val track2DataUUID: UUID = UUID.fromString("0000B0B2-1212-EFEF-1523-785FEABCD123")
-    private val controlPointUUID: UUID = UUID.fromString("0000B0B3-1212-EFEF-1523-785FEABCD123")
+    companion object {
+        private val MAG_SPOOF_SERVICE_UUID: UUID = UUID.fromString("0000BEEF-1212-EFEF-1523-785FEABCD123")
+        private val TRACK_1_DATA_UUID: UUID = UUID.fromString("0000B0B1-1212-EFEF-1523-785FEABCD123")
+        private val TRACK_2_DATA_UUID: UUID = UUID.fromString("0000B0B2-1212-EFEF-1523-785FEABCD123")
+        private val CONTROL_POINT_UUID: UUID = UUID.fromString("0000B0B3-1212-EFEF-1523-785FEABCD123")
+    }
 
     private var track1Characteristic: BluetoothGattCharacteristic? = null
     private var track2Characteristic: BluetoothGattCharacteristic? = null
