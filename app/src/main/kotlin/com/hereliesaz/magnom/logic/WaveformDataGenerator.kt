@@ -8,37 +8,35 @@ import kotlin.math.sin
  */
 class WaveformDataGenerator {
 
-    companion object {
-        private const val SAMPLE_RATE = 44100
-        private const val BITS_PER_SECOND = 1575 // Standard for 75 BPI at 7.5 IPS is 562.5 bps, but higher is needed for audio. Using a common value.
-        private const val SAMPLES_PER_BIT = SAMPLE_RATE / BITS_PER_SECOND
+    private val sampleRate = 44100
+    private val bitsPerSecond = 1575
+    private val samplesPerBit = sampleRate / bitsPerSecond
 
-        // Track 2 uses a 5-bit character set (4 data bits + 1 odd parity bit).
-        private val TRACK2_CHAR_MAP = mapOf(
-            '0' to "0000", '1' to "0001", '2' to "0010", '3' to "0011",
-            '4' to "0100", '5' to "0101", '6' to "0110", '7' to "0111",
-            '8' to "1000", '9' to "1001", ';' to "1011", '=' to "1101",
-            '?' to "1111"
-        )
+    // Track 2 uses a 5-bit character set (4 data bits + 1 odd parity bit).
+    private val track2CharMap = mapOf(
+        '0' to "0000", '1' to "0001", '2' to "0010", '3' to "0011",
+        '4' to "0100", '5' to "0101", '6' to "0110", '7' to "0111",
+        '8' to "1000", '9' to "1001", ';' to "1011", '=' to "1101",
+        '?' to "1111"
+    )
 
-        /**
-         * Calculates and prepends an odd parity bit to a binary string.
-         */
-        private fun withOddParity(dataBits: String): String {
-            val onesCount = dataBits.count { it == '1' }
-            val parityBit = if (onesCount % 2 == 0) "1" else "0"
-            return parityBit + dataBits
-        }
+    /**
+     * Calculates and prepends an odd parity bit to a binary string.
+     */
+    private fun withOddParity(dataBits: String): String {
+        val onesCount = dataBits.count { it == '1' }
+        val parityBit = if (onesCount % 2 == 0) "1" else "0"
+        return parityBit + dataBits
+    }
 
-        /**
-         * Converts a full track string into its corresponding bitstream, including parity.
-         */
-        private fun stringToBitstream(trackData: String): List<Int> {
-            return trackData.flatMap { char ->
-                val dataBits = TRACK2_CHAR_MAP[char] ?: throw IllegalArgumentException("Invalid character in Track 2 data: $char")
-                val bitsWithParity = withOddParity(dataBits)
-                bitsWithParity.map { it.toString().toInt() }
-            }
+    /**
+     * Converts a full track string into its corresponding bitstream, including parity.
+     */
+    private fun stringToBitstream(trackData: String): List<Int> {
+        return trackData.flatMap { char ->
+            val dataBits = track2CharMap[char] ?: throw IllegalArgumentException("Invalid character in Track 2 data: $char")
+            val bitsWithParity = withOddParity(dataBits)
+            bitsWithParity.map { it.toString().toInt() }
         }
     }
 
@@ -50,7 +48,7 @@ class WaveformDataGenerator {
      */
     fun generate(trackData: String): FloatArray {
         val bitstream = stringToBitstream(trackData)
-        val pcmData = FloatArray(bitstream.size * SAMPLES_PER_BIT)
+        val pcmData = FloatArray(bitstream.size * samplesPerBit)
         var currentLevel = 1.0f
         var writeHead = 0
 
@@ -58,8 +56,8 @@ class WaveformDataGenerator {
         // '0' has a flux transition only in the middle of the bit cell.
         // '1' has a flux transition at the beginning and in the middle.
         for (bit in bitstream) {
-            val halfBitSamples = SAMPLES_PER_BIT / 2
-            val fullBitSamples = SAMPLES_PER_BIT
+            val halfBitSamples = samplesPerBit / 2
+            val fullBitSamples = samplesPerBit
 
             if (bit == 1) {
                 // Transition at the start of the bit cell for a '1'
