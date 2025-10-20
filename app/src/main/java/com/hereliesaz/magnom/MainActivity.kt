@@ -34,11 +34,8 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Editor.route) { CardEditorScreen(navController = navController) }
                         composable(Screen.AdvancedEditor.route) { AdvancedRawDataEditorScreen(navController = navController) }
                         composable(Screen.Settings.route) { SettingsScreen(navController = navController) }
-                        composable(Screen.Transmission.route) { backStackEntry ->
-                            TransmissionInterfaceScreen(
-                                navController = navController,
-                                cardId = backStackEntry.arguments?.getString("cardId")
-                            )
+                        composable(Screen.Transmission.route) {
+                            TransmissionInterfaceScreen(navController = navController)
                         }
                     }
                 }
