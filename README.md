@@ -21,6 +21,11 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Correct calculation of the Longitudinal Redundancy Check (LRC).
 *   **User Interface:**
     *   User feedback on transmission status.
+    *   Refined UI for the main and transmission screens.
+    *   Advanced Raw Data Editor for viewing and editing raw track data.
+    *   Settings screen for managing BLE peripheral connections.
+*   **Security:**
+    *   App Lock feature with PIN and biometric authentication.
 *   **Bluetooth Low Energy (BLE) Communication:**
     *   A foreground service to manage BLE operations.
     *   Scanning for and discovering nearby BLE peripherals.
@@ -39,6 +44,11 @@ The next major phase of development will focus on end-to-end testing with a hard
 
 ### Future Features:
 
+*   **Waveform Visualization:**
+    *   Display the waveform of the magnetic stripe data.
+    *   Allow zooming and panning of the waveform.
+    *   Display the corresponding characters under the waveform.
+    *   Allow the user to play the sound of the waveform.
 *   **Audio File Parsing:**
     *   Allow the user to load an audio or video file.
     *   Parse the file for magnetic stripe swipe data.
