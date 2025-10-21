@@ -46,13 +46,6 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Automatically populate the search fields with the name on the card.
 *   **Gemini Deep Research Integration:**
     *   Add a button to take the user to Gemini Deep Research.
-
-### Next Steps:
-
-The next major phase of development will focus on end-to-end testing with a hardware peripheral.
-
-### Future Features:
-
 *   **Card Photo Scanning:**
     *   Implement card photo scanning as part of the card profile creation process.
     *   Save front and back images of the card.
@@ -61,7 +54,14 @@ The next major phase of development will focus on end-to-end testing with a hard
     *   Add a notes section to each card profile.
     *   Allow users to add multiple notes of any size.
 *   **Immediate Save:**
-    *   All changes in the app must be immediately saved upon being made.
+    *   All changes in the app are immediately saved upon being made.
+
+### Next Steps:
+
+The next major phase of development will focus on end-to-end testing with a hardware peripheral.
+
+### Future Features:
+
 *   **In-App Help:**
     *   Add info icons to all UI elements to provide popup dialogs with information.
     *   Add a "Help" button to the `AzNavRail` that brings up a dialog with detailed instructions for the current screen.
