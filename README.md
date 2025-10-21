@@ -41,13 +41,11 @@ The project is currently in the **alpha development stage**. The core infrastruc
 *   **Backup and Restore:**
     *   Allow the user to back up all their data to a password-protected file.
     *   Allow the user to restore their data from a backup file.
-
-### Next Steps:
-
-The next major phase of development will focus on end-to-end testing with a hardware peripheral.
-
-### Future Features:
-
+*   **Smart Background Checks Integration:**
+    *   Add a button to take the user to smartbackgroundchecks.com.
+    *   Automatically populate the search fields with the name on the card.
+*   **Gemini Deep Research Integration:**
+    *   Add a button to take the user to Gemini Deep Research.
 *   **Card Photo Scanning:**
     *   Implement card photo scanning as part of the card profile creation process.
     *   Save front and back images of the card.
@@ -55,18 +53,24 @@ The next major phase of development will focus on end-to-end testing with a hard
 *   **Notes Section:**
     *   Add a notes section to each card profile.
     *   Allow users to add multiple notes of any size.
-*   **Smart Background Checks Integration:**
-    *   Add a button to take the user to smartbackgroundchecks.com.
-    *   Automatically populate the search fields with the name on the card.
-    *   Save the search results to a note in the card profile.
-*   **Gemini Deep Research Integration:**
-    *   Add a button to take the user to Gemini Deep Research.
-    *   Generate a report for the name on the card.
-    *   Allow the user to copy the report contents to a new note in the card profile.
 *   **Immediate Save:**
-    *   All changes in the app must be immediately saved upon being made.
+    *   All changes in the app are immediately saved upon being made.
 *   **In-App Help:**
     *   Add info icons to all UI elements to provide popup dialogs with information.
     *   Add a "Help" button to the `AzNavRail` that brings up a dialog with detailed instructions for the current screen.
-*   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
-*   Create a trimmed audio clip for each swipe.
+*   **Recording Device Selection:**
+    *   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
+*   **Trimmed Audio Clip Creation:**
+    *   Create a trimmed audio clip for each swipe.
+
+### Next Steps:
+
+The next major phase of development will focus on end-to-end testing with a hardware peripheral.
+
+### Future Features:
+
+- [ ] Bruteforce Screen
+- [ ] USB Device Support and Device Management Screen
+- [x] In-App Help
+- [x] Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
+- [x] Create a trimmed audio clip for each swipe.

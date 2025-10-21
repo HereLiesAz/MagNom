@@ -1,5 +1,6 @@
 package com.hereliesaz.magnom.ui.screens
 
+import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,19 +15,30 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import com.hereliesaz.magnom.ui.components.InfoIcon
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.viewmodels.CardEditorViewModel
+import com.hereliesaz.magnom.viewmodels.CardEditorViewModelFactory
 
 @Composable
-fun CardEditorScreen(navController: NavController, cardEditorViewModel: CardEditorViewModel = viewModel()) {
+fun CardEditorScreen(navController: NavController, cardId: String? = null) {
+    val context = LocalContext.current
+    val cardEditorViewModel: CardEditorViewModel = viewModel(
+        factory = CardEditorViewModelFactory(
+            context.applicationContext as Application,
+            cardId
+        )
+    )
     val uiState by cardEditorViewModel.uiState.collectAsState()
+
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -45,31 +57,46 @@ fun CardEditorScreen(navController: NavController, cardEditorViewModel: CardEdit
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.End
     ) {
-        TextField(
-            value = uiState.name,
-            onValueChange = cardEditorViewModel::onNameChange,
-            label = { Text("Name") }
-        )
-        TextField(
-            value = uiState.pan,
-            onValueChange = cardEditorViewModel::onPanChange,
-            label = { Text("PAN") }
-        )
-        TextField(
-            value = uiState.expirationDate,
-            onValueChange = cardEditorViewModel::onExpirationDateChange,
-            label = { Text("Expiration Date (YYMM)") }
-        )
-        TextField(
-            value = uiState.serviceCode,
-            onValueChange = cardEditorViewModel::onServiceCodeChange,
-            label = { Text("Service Code") }
-        )
-        TextField(
-            value = uiState.notes,
-            onValueChange = cardEditorViewModel::onNotesChange,
-            label = { Text("Notes") }
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = uiState.name,
+                onValueChange = cardEditorViewModel::onNameChange,
+                label = { Text("Name") }
+            )
+            InfoIcon("Enter the full name of the cardholder.")
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = uiState.pan,
+                onValueChange = cardEditorViewModel::onPanChange,
+                label = { Text("PAN") }
+            )
+            InfoIcon("Enter the Primary Account Number (PAN) of the card.")
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = uiState.expirationDate,
+                onValueChange = cardEditorViewModel::onExpirationDateChange,
+                label = { Text("Expiration Date (YYMM)") }
+            )
+            InfoIcon("Enter the expiration date in YYMM format.")
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = uiState.serviceCode,
+                onValueChange = cardEditorViewModel::onServiceCodeChange,
+                label = { Text("Service Code") }
+            )
+            InfoIcon("Enter the service code of the card.")
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextField(
+                value = uiState.notes,
+                onValueChange = cardEditorViewModel::onNotesChange,
+                label = { Text("Notes") }
+            )
+            InfoIcon("Enter any notes for this card.")
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -103,11 +130,14 @@ fun CardEditorScreen(navController: NavController, cardEditorViewModel: CardEdit
             }
         }
 
-        Button(onClick = {
-            cardEditorViewModel.saveCardProfile()
-            navController.popBackStack()
-        }) {
-            Text("Save")
+        Row {
+            Button(onClick = { cardEditorViewModel.smartBackgroundCheck(context, uiState.name) }) {
+                Text("Smart Background Check")
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { cardEditorViewModel.geminiDeepResearch(context) }) {
+                Text("Gemini Deep Research")
+            }
         }
 
         uiState.error?.let {

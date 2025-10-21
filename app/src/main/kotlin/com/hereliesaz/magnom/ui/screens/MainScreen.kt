@@ -47,7 +47,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate(Screen.Editor.route) }) {
+            FloatingActionButton(onClick = { navController.navigate(Screen.Editor.createRoute(null)) }) {
                 Text("+")
             }
         }
