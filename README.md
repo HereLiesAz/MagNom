@@ -38,6 +38,9 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Identify and extract all swipes in the file.
 *   **In-App Audio Recording:**
     *   Allow the user to record audio from within the app.
+*   **Backup and Restore:**
+    *   Allow the user to back up all their data to a password-protected file.
+    *   Allow the user to restore their data from a backup file.
 
 ### Next Steps:
 

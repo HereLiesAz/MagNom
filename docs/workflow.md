@@ -23,6 +23,7 @@ The project will follow the following workflow:
     *   Status: Done
     *   Implement the data logic modules.
     *   Implement secure storage.
+    *   Implement backup and restore functionality.
 5.  **Phase 5: BLE Communication Service Implementation and Integration:**
     *   Status: Done
     *   Create the BLE service.
