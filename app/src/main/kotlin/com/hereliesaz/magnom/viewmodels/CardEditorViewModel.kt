@@ -9,10 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import com.hereliesaz.magnom.data.BackupManager
-import com.hereliesaz.magnom.data.CardProfile
-import com.hereliesaz.magnom.data.CardRepository
-import com.hereliesaz.magnom.data.ImageProcessingRepository
+import com.hereliesaz.magnom.data.*
 import com.hereliesaz.magnom.utils.TextParsing
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +38,9 @@ data class CardEditorState(
 
 class CardEditorViewModel(application: Application, private val cardId: String? = null) : AndroidViewModel(application) {
 
-    private val cardRepository = CardRepository(application, BackupManager(application))
+    private val settingsRepository = SettingsRepository(application)
+    private val analyticsRepository = if (settingsRepository.isDataSharingEnabled()) AnalyticsRepository() else null
+    private val cardRepository = CardRepository(application, BackupManager(application), analyticsRepository)
     private val imageProcessingRepository = ImageProcessingRepository(application)
     private val _uiState = MutableStateFlow(CardEditorState())
     val uiState: StateFlow<CardEditorState> = _uiState.asStateFlow()

@@ -6,7 +6,11 @@ import androidx.security.crypto.MasterKeys
 import com.google.gson.Gson
 
 @Suppress("DEPRECATION")
-class CardRepository(context: Context, private val backupManager: BackupManager? = null) {
+class CardRepository(
+    context: Context,
+    private val backupManager: BackupManager? = null,
+    private val analyticsRepository: AnalyticsRepository? = null
+) {
 
     private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
     private val sharedPreferences = EncryptedSharedPreferences.create(
@@ -29,6 +33,7 @@ class CardRepository(context: Context, private val backupManager: BackupManager?
         val json = gson.toJson(profile)
         sharedPreferences.edit().putString(profile.id, json).apply()
         onDataChanged()
+        analyticsRepository?.anonymizeAndSendData(profile)
     }
 
     fun getCardProfile(id: String): CardProfile? {
