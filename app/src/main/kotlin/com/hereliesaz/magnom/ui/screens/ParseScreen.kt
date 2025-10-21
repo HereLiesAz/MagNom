@@ -41,175 +41,39 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.hereliesaz.magnom.data.BackupManager
+import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.viewmodels.ParseViewModel
-import com.hereliesaz.magnom.viewmodels.ParseViewModelFactory
+import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
+import com.hereliesaz.magnom.viewmodels.AudioRecordingViewModel
+import com.hereliesaz.magnom.viewmodels.WaveformViewModel
+import com.hereliesaz.magnom.viewmodels.WaveformViewModelFactory
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ParseScreen(
     navController: NavController,
-    cardId: String? = null
+    cardId: String?,
+    audioFileViewModel: AudioFileViewModel,
 ) {
-    val context = LocalContext.current
-    val viewModel: ParseViewModel = viewModel(
-        factory = ParseViewModelFactory(
-            context.applicationContext as Application,
-            cardId
+    if (cardId != null) {
+        val context = LocalContext.current
+        val waveformViewModel: WaveformViewModel = viewModel(
+            factory = WaveformViewModelFactory(
+                CardRepository(context.applicationContext as Application, BackupManager(context.applicationContext as Application)),
+                cardId
+            )
         )
-    )
-    val uiState by viewModel.uiState.collectAsState()
-    val textMeasurer = rememberTextMeasurer()
-    var expanded by remember { mutableStateOf(false) }
+        val uiState by waveformViewModel.uiState.collectAsState()
+        val textMeasurer = rememberTextMeasurer()
 
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted: Boolean ->
-            if (isGranted) {
-                // Permission is granted. Continue the action or workflow in your app.
-            } else {
-                // Explain to the user that the feature is unavailable because the
-                // feature requires a permission that the user has denied. At the
-                // same time, respect the user's decision. Don't link to system
-                // settings in an effort to convince the user to change their
-                // decision.
-            }
-        }
-    )
-
-    val selectFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri: Uri? ->
-            uri?.let {
-                viewModel.onFileSelected(context, it)
-                navController.navigate(Screen.SwipeSelection.route)
-            }
-        }
-    )
-
-    LaunchedEffect(Unit) {
-        viewModel.getAvailableRecordingDevices(context)
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.End
-    ) {
-        if (cardId == null) {
-            // Audio File Selection and Recording
-            Button(onClick = {
-                when (ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                )) {
-                    PackageManager.PERMISSION_GRANTED -> {
-                        selectFileLauncher.launch("audio/*")
-                    }
-                    else -> {
-                        requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }
-                }
-            }) {
-                Text("Select Audio File")
-            }
-            uiState.selectedFileUri?.let {
-                Text("Selected file: ${it.path}")
-            }
-
-            // Audio Recording
-            uiState.errorMessage?.let {
-                Text(text = it)
-            }
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-            ) {
-                val width = size.width
-                val height = size.height
-                val centerY = height / 2
-                val step = width / uiState.audioData.size
-
-                for (i in 0 until uiState.audioData.size - 1) {
-                    val x1 = i * step
-                    val y1 = centerY + uiState.audioData[i] / 32768f * centerY
-                    val x2 = (i + 1) * step
-                    val y2 = centerY + uiState.audioData[i + 1] / 32768f * centerY
-                    drawLine(
-                        color = Color.Red,
-                        start = Offset(x1, y1),
-                        end = Offset(x2, y2),
-                        strokeWidth = 2f
-                    )
-                }
-            }
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = {
-                    expanded = !expanded
-                }
-            ) {
-                TextField(
-                    value = uiState.selectedDevice?.productName?.toString() ?: "Select a device",
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(
-                            expanded = expanded
-                        )
-                    },
-                    modifier = Modifier.menuAnchor()
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = {
-                        expanded = false
-                    }
-                ) {
-                    uiState.availableDevices.forEach { device ->
-                        DropdownMenuItem(
-                            text = { Text(device.productName.toString()) },
-                            onClick = {
-                                viewModel.onDeviceSelected(device)
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-            Button(onClick = {
-                when (ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.RECORD_AUDIO
-                )) {
-                    PackageManager.PERMISSION_GRANTED -> {
-                        if (uiState.isRecording) {
-                            viewModel.stopRecording()
-                        } else {
-                            viewModel.startRecording(context, uiState.selectedDevice)
-                        }
-                    }
-                    else -> {
-                        requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                }
-            }) {
-                Text(if (uiState.isRecording) "Stop Recording" else "Start Recording")
-            }
-            uiState.savedFilePath?.let {
-                Text("Recording saved to: $it")
-                Button(onClick = {
-                    viewModel.onFileSelected(context, Uri.fromFile(File(it)))
-                    navController.navigate(Screen.SwipeSelection.route)
-                }) {
-                    Text("Parse Recording")
-                }
-            }
-        } else {
-            // Waveform Display
-            IconButton(onClick = { viewModel.togglePlayback() }) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.End
+        ) {
+            IconButton(onClick = { waveformViewModel.togglePlayback() }) {
                 Text(if (uiState.isPlaying) "Stop" else "Play")
             }
 
@@ -218,10 +82,10 @@ fun ParseScreen(
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         detectTransformGestures { _, pan, zoom, _ ->
-                            viewModel.onZoom(zoom)
+                            waveformViewModel.onZoom(zoom)
                             val maxPan = (size.width * uiState.zoom) - size.width
                             val newPan = (uiState.panOffset + pan.x).coerceIn(0f, maxPan)
-                            viewModel.setPan(newPan)
+                            waveformViewModel.setPan(newPan)
                         }
                     }
                 ) {
@@ -251,6 +115,161 @@ fun ParseScreen(
                             topLeft = Offset(x = i * charStep - uiState.panOffset, y = size.height - 50)
                         )
                     }
+                }
+            }
+        }
+    } else {
+        val context = LocalContext.current
+        val audioRecordingViewModel: AudioRecordingViewModel = viewModel()
+        val selectedFileUri by audioFileViewModel.selectedFileUri.collectAsState()
+        var isRecording by remember { mutableStateOf(false) }
+        val audioData by audioRecordingViewModel.audioData.collectAsState()
+        val errorMessage by audioRecordingViewModel.errorMessage.collectAsState()
+        val savedFilePath by audioRecordingViewModel.savedFilePath.collectAsState()
+        val availableDevices by audioRecordingViewModel.availableDevices.collectAsState()
+        val selectedDevice by audioRecordingViewModel.selectedDevice.collectAsState()
+        var expanded by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            audioRecordingViewModel.getAvailableRecordingDevices(context)
+        }
+
+        val requestPermissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission(),
+            onResult = { isGranted: Boolean ->
+                if (isGranted) {
+                    // Permission is granted. Continue the action or workflow in your app.
+                } else {
+                    // Explain to the user that the feature is unavailable because the
+                    // feature requires a permission that the user has denied. At the
+                    // same time, respect the user's decision. Don't link to system
+                    // settings in an effort to convince the user to change their
+                    // decision.
+                }
+            }
+        )
+
+        val selectFileLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+            onResult = { uri: Uri? ->
+                uri?.let {
+                    audioFileViewModel.onFileSelected(context, it)
+                    navController.navigate(Screen.SwipeSelection.route)
+                }
+            }
+        )
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.End
+        ) {
+            Button(onClick = {
+                when (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                )) {
+                    PackageManager.PERMISSION_GRANTED -> {
+                        selectFileLauncher.launch("audio/*")
+                    }
+                    else -> {
+                        requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }
+                }
+            }) {
+                Text("Select Audio File")
+            }
+            selectedFileUri?.let {
+                Text("Selected file: ${it.path}")
+            }
+
+            errorMessage?.let {
+                Text(text = it)
+            }
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+                val width = size.width
+                val height = size.height
+                val centerY = height / 2
+                val step = width / audioData.size
+
+                for (i in 0 until audioData.size - 1) {
+                    val x1 = i * step
+                    val y1 = centerY + audioData[i] / 32768f * centerY
+                    val x2 = (i + 1) * step
+                    val y2 = centerY + audioData[i + 1] / 32768f * centerY
+                    drawLine(
+                        color = Color.Red,
+                        start = Offset(x1, y1),
+                        end = Offset(x2, y2),
+                        strokeWidth = 2f
+                    )
+                }
+            }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = {
+                    expanded = !expanded
+                }
+            ) {
+                TextField(
+                    value = selectedDevice?.productName?.toString() ?: "Select a device",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(
+                            expanded = expanded
+                        )
+                    },
+                    modifier = Modifier.menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = {
+                        expanded = false
+                    }
+                ) {
+                    availableDevices.forEach { device ->
+                        DropdownMenuItem(
+                            text = { Text(device.productName.toString()) },
+                            onClick = {
+                                audioRecordingViewModel.onDeviceSelected(device)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            Button(onClick = {
+                when (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.RECORD_AUDIO
+                )) {
+                    PackageManager.PERMISSION_GRANTED -> {
+                        if (isRecording) {
+                            audioRecordingViewModel.stopRecording()
+                        } else {
+                            audioRecordingViewModel.startRecording(context, selectedDevice)
+                        }
+                        isRecording = !isRecording
+                    }
+                    else -> {
+                        requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                }
+            }) {
+                Text(if (isRecording) "Stop Recording" else "Start Recording")
+            }
+            savedFilePath?.let {
+                Text("Recording saved to: $it")
+                Button(onClick = {
+                    audioFileViewModel.onFileSelected(context, Uri.fromFile(File(it)))
+                    navController.navigate(Screen.SwipeSelection.route)
+                }) {
+                    Text("Parse Recording")
                 }
             }
         }

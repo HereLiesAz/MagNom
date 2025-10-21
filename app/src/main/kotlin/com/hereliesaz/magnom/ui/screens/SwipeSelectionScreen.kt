@@ -18,63 +18,68 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.viewmodels.ParseViewModel
+import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
 
 @Composable
 fun SwipeSelectionScreen(
     navController: NavController,
-    parseViewModel: ParseViewModel = viewModel()
+    audioFileViewModel: AudioFileViewModel = viewModel()
 ) {
-    val uiState by parseViewModel.uiState.collectAsState()
+    val swipes by audioFileViewModel.swipes.collectAsState()
+    val selectedSwipe by audioFileViewModel.selectedSwipe.collectAsState()
+    val errorMessage by audioFileViewModel.errorMessage.collectAsState()
+    val zcrThreshold by audioFileViewModel.zcrThreshold.collectAsState()
+    val windowSize by audioFileViewModel.windowSize.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.End
     ) {
-        uiState.errorMessage?.let {
+        errorMessage?.let {
             Text(text = it)
         }
-        Text(text = "ZCR Threshold: ${uiState.zcrThreshold}")
+        Text(text = "ZCR Threshold: $zcrThreshold")
         Slider(
-            value = uiState.zcrThreshold.toFloat(),
-            onValueChange = { parseViewModel.onZcrThresholdChange(it.toDouble()) },
+            value = zcrThreshold.toFloat(),
+            onValueChange = { audioFileViewModel.onZcrThresholdChange(it.toDouble()) },
             valueRange = 0f..1f
         )
-        Text(text = "Window Size: ${uiState.windowSize}")
+        Text(text = "Window Size: $windowSize")
         Slider(
-            value = uiState.windowSize.toFloat(),
-            onValueChange = { parseViewModel.onWindowSizeChange(it.toInt()) },
+            value = windowSize.toFloat(),
+            onValueChange = { audioFileViewModel.onWindowSizeChange(it.toInt()) },
             valueRange = 256f..4096f
         )
         LazyColumn {
-            items(uiState.swipes) { swipe ->
+            items(swipes) { swipe ->
                 Text(
                     text = "Swipe from ${swipe.startTime} to ${swipe.endTime}",
-                    modifier = Modifier.clickable { parseViewModel.onSwipeSelected(swipe) }
+                    modifier = Modifier.clickable { audioFileViewModel.onSwipeSelected(swipe) }
                 )
             }
         }
         Button(
             onClick = {
-                uiState.selectedSwipe?.let {
+                selectedSwipe?.let {
                     val swipeJson = Gson().toJson(it)
                     navController.navigate(Screen.CreateCardProfile.createRoute(swipeJson))
                 }
             },
-            enabled = uiState.selectedSwipe != null
+            enabled = selectedSwipe != null
         ) {
             Text("Create New Profile")
         }
         Button(
             onClick = {
-                parseViewModel.createTrimmedWavFile()
+                audioFileViewModel.createTrimmedWavFile()
             },
-            enabled = uiState.selectedSwipe != null
+            enabled = selectedSwipe != null
         ) {
             Text("Create Trimmed Clip")
         }
-        uiState.trimmedFilePath?.let {
+        val trimmedFilePath by audioFileViewModel.trimmedFilePath.collectAsState()
+        trimmedFilePath?.let {
             Text("Trimmed file saved to: $it")
         }
     }

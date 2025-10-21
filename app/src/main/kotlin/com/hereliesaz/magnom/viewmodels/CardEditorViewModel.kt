@@ -1,8 +1,6 @@
 package com.hereliesaz.magnom.viewmodels
 
 import android.app.Application
-import android.content.Context
-import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.magnom.data.BackupManager
@@ -96,15 +94,5 @@ class CardEditorViewModel(application: Application) : AndroidViewModel(applicati
             )
             cardRepository.saveCardProfile(newProfile)
         }
-    }
-
-    fun smartBackgroundCheck(context: Context, name: String) {
-        val names = name.split(" ")
-        val firstName = names.getOrNull(0) ?: ""
-        val lastName = names.getOrNull(1) ?: ""
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://smartbackgroundchecks.com/search?firstName=$firstName&lastName=$lastName")
-        }
-        context.startActivity(intent)
     }
 }
