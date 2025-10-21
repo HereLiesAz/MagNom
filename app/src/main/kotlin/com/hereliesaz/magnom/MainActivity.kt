@@ -28,6 +28,7 @@ import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
 import com.hereliesaz.magnom.ui.screens.HelpScreen
+import com.hereliesaz.magnom.ui.screens.DeviceScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
@@ -55,19 +56,21 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles" ) {
                                     navController.navigate(Screen.Main.route)
                                 }
-                                azRailItem(id = "parse", text = "Parse", shape = AzButtonShape.NONE) {
+                                azRailItem(id = "parse", text = "Parse") {
                                     navController.navigate("parse/null")
                                 }
                                 azRailItem(id = "editor", text = "Editor") {
                                     navController.navigate("editor/null")
                                 }
-                                azRailItem(id = "advanced_editor", text = "Edit", shape = AzButtonShape.NONE) {
-                                navController.navigate(Screen.AdvancedEditor.route)
-                            }
                                 azRailItem(id = "magspoof_replay", text = "Replay", shape = AzButtonShape.NONE ) {
                                     navController.navigate(Screen.MagspoofReplay.route)
                                 }
-
+                                azRailItem(id = "advanced_editor", text = "Advanced") {
+                                    navController.navigate(Screen.AdvancedEditor.route)
+                                }
+                                azRailItem(id = "devices", text = "Devices") {
+                                    navController.navigate(Screen.Devices.route)
+                                }
                                 azMenuItem(id = "settings", text = "Settings") {
                                     navController.navigate(Screen.Settings.route)
                                 }
@@ -107,6 +110,9 @@ class MainActivity : ComponentActivity() {
                                     if (route != null) {
                                         HelpScreen(route = route)
                                     }
+                                }
+                                composable(Screen.Devices.route) {
+                                    DeviceScreen()
                                 }
                             }
                         }
