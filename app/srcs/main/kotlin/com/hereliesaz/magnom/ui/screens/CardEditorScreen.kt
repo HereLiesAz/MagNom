@@ -115,6 +115,13 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
         }
 
         Row {
+            Button(onClick = {
+                cardEditorViewModel.saveCardProfile()
+                navController.popBackStack()
+            }) {
+                Text("Save")
+            }
+            Spacer(modifier = Modifier.width(16.dp))
             Button(onClick = { cardEditorViewModel.smartBackgroundCheck(context, uiState.name) }) {
                 Text("Smart Background Check")
             }
