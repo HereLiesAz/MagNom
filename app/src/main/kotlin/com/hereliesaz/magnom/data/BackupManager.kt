@@ -14,6 +14,7 @@ import net.lingala.zip4j.model.enums.EncryptionMethod
 import java.io.File
 import java.io.FileOutputStream
 import android.net.Uri
+import com.hereliesaz.magnom.audio.Result
 
 class BackupManager(private val context: Context) {
 
@@ -22,10 +23,10 @@ class BackupManager(private val context: Context) {
     private var backupJob: Job? = null
     private val backupScope = CoroutineScope(Dispatchers.IO)
 
-    fun createBackup(password: String, destinationUri: String) {
-        try {
+    fun createBackup(password: String, destinationUri: String): Result<Unit> {
+        return try {
             val sharedPrefsDir = File(context.filesDir.parent, "shared_prefs")
-            val tempZipFile = File(context.cacheDir, "backup.zip")
+            val tempZipFile = File.createTempFile("backup", ".zip", context.cacheDir)
             val zipFile = ZipFile(tempZipFile, password.toCharArray())
             val zipParameters = ZipParameters()
             zipParameters.isEncryptFiles = true
@@ -39,14 +40,16 @@ class BackupManager(private val context: Context) {
                 }
             }
             tempZipFile.delete()
+            Result.Success(Unit)
         } catch (e: Exception) {
             Log.e("BackupManager", "Error creating backup", e)
+            Result.Error("Error creating backup: ${e.message}")
         }
     }
 
-    fun restoreBackup(password: String, sourceUri: Uri): Boolean {
+    fun restoreBackup(password: String, sourceUri: Uri): Result<Unit> {
         return try {
-            val tempZipFile = File(context.cacheDir, "restore.zip")
+            val tempZipFile = File.createTempFile("restore", ".zip", context.cacheDir)
             context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
                 FileOutputStream(tempZipFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
@@ -57,10 +60,10 @@ class BackupManager(private val context: Context) {
             val sharedPrefsDir = File(context.filesDir.parent, "shared_prefs")
             zipFile.extractAll(sharedPrefsDir.absolutePath)
             tempZipFile.delete()
-            true
+            Result.Success(Unit)
         } catch (e: Exception) {
             Log.e("BackupManager", "Error restoring backup", e)
-            false
+            Result.Error("Error restoring backup: ${e.message}")
         }
     }
 

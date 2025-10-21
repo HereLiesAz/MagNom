@@ -69,6 +69,7 @@ The next major phase of development will focus on end-to-end testing with a hard
 
 ### Future Features:
 
+- [ ] Predictive Algorithm Data Collection
 - [x] Bruteforce Screen
 - [x] USB Device Support and Device Management Screen
 - [x] In-App Help

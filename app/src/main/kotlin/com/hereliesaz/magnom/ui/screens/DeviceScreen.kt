@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.hardware.usb.UsbDevice
 import android.os.IBinder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -26,51 +28,82 @@ import com.hereliesaz.magnom.viewmodels.DeviceViewModel
 fun DeviceScreen(deviceViewModel: DeviceViewModel = viewModel()) {
     val uiState by deviceViewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var usbService: UsbCommunicationService? by remember { mutableStateOf(null) }
-    var isUsbServiceBound by remember { mutableStateOf(false) }
 
     val usbServiceConnection = remember {
         object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val binder = service as UsbCommunicationService.UsbBinder
-                usbService = binder.getService()
-                isUsbServiceBound = true
-                usbService?.connect()
+                deviceViewModel.onServiceConnected(binder.getService())
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-                usbService = null
-                isUsbServiceBound = false
+                deviceViewModel.onServiceDisconnected()
             }
         }
     }
 
     DisposableEffect(Unit) {
+        val intent = Intent(context, UsbCommunicationService::class.java)
+        context.bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
+
         onDispose {
-            if (isUsbServiceBound) {
-                context.unbindService(usbServiceConnection)
-            }
+            context.unbindService(usbServiceConnection)
         }
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp)
-    ) {
-        items(uiState.devices) { device ->
-            DeviceListItem(
-                device = device,
-                isExpanded = uiState.expandedDeviceIds.contains(device.id),
-                onDeviceClicked = { deviceViewModel.onDeviceClicked(device.id) },
-                onPinDeviceClicked = { deviceViewModel.onPinDeviceClicked(device) },
-                onEnableDeviceClicked = {
-                    deviceViewModel.onEnableDeviceClicked(context, device)
-                    if (!isUsbServiceBound) {
-                        val intent = Intent(context, UsbCommunicationService::class.java)
-                        context.bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
-                    }
+    if (uiState.devices.isEmpty() && uiState.usbDevices.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No devices found.")
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            item {
+                Button(onClick = { deviceViewModel.refreshUsbDevices() }) {
+                    Text("Refresh USB Devices")
                 }
-            )
+            }
+            items(uiState.devices) { device ->
+                DeviceListItem(
+                    device = device,
+                    isExpanded = uiState.expandedDeviceIds.contains(device.id),
+                    onDeviceClicked = { deviceViewModel.onDeviceClicked(device.id) },
+                    onPinDeviceClicked = { deviceViewModel.onPinDeviceClicked(device) },
+                    onEnableDeviceClicked = {
+                        // This is handled by the UsbDeviceListItem
+                    }
+                )
+            }
+            items(uiState.usbDevices) { device ->
+                UsbDeviceListItem(
+                    device = device,
+                    onConnectClicked = { deviceViewModel.onEnableDeviceClicked(device) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun UsbDeviceListItem(
+    device: UsbDevice,
+    onConnectClicked: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = device.deviceName)
+            Button(onClick = onConnectClicked) {
+                Text("Connect")
+            }
         }
     }
 }

@@ -20,10 +20,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import androidx.compose.runtime.getValue
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hereliesaz.magnom.viewmodels.NavigationEvent
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.viewmodels.CardEditorViewModel
 import com.hereliesaz.magnom.viewmodels.CardEditorViewModelFactory
@@ -39,6 +43,18 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
     )
     val uiState by cardEditorViewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        cardEditorViewModel.navigationEvent.collect { event ->
+            when (event) {
+                is NavigationEvent.ToUrl -> {
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse(event.url)
+                    }
+                    context.startActivity(intent)
+                }
+            }
+        }
+    }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -69,7 +85,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             TextField(
                 value = uiState.pan,
                 onValueChange = cardEditorViewModel::onPanChange,
-                label = { Text("PAN") }
+                label = { Text("PAN") },
+                isError = uiState.error is com.hereliesaz.magnom.viewmodels.CardEditorError.InvalidPan
             )
             InfoIcon("Enter the Primary Account Number (PAN) of the card.")
         }
@@ -77,7 +94,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             TextField(
                 value = uiState.expirationDate,
                 onValueChange = cardEditorViewModel::onExpirationDateChange,
-                label = { Text("Expiration Date (YYMM)") }
+                label = { Text("Expiration Date (YYMM)") },
+                isError = uiState.error is com.hereliesaz.magnom.viewmodels.CardEditorError.InvalidExpirationDate
             )
             InfoIcon("Enter the expiration date in YYMM format.")
         }
@@ -85,7 +103,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             TextField(
                 value = uiState.serviceCode,
                 onValueChange = cardEditorViewModel::onServiceCodeChange,
-                label = { Text("Service Code") }
+                label = { Text("Service Code") },
+                isError = uiState.error is com.hereliesaz.magnom.viewmodels.CardEditorError.InvalidServiceCode
             )
             InfoIcon("Enter the service code of the card.")
         }
@@ -131,17 +150,17 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
         }
 
         Row {
-            Button(onClick = { cardEditorViewModel.smartBackgroundCheck(context, uiState.name) }) {
+            Button(onClick = { cardEditorViewModel.smartBackgroundCheck(uiState.name) }) {
                 Text("Smart Background Check")
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Button(onClick = { cardEditorViewModel.geminiDeepResearch(context) }) {
+            Button(onClick = { cardEditorViewModel.geminiDeepResearch() }) {
                 Text("Gemini Deep Research")
             }
         }
 
         uiState.error?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
+            Text(text = it.message, color = MaterialTheme.colorScheme.error)
         }
     }
 }

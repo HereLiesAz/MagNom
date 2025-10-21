@@ -34,6 +34,9 @@ class BruteforceViewModel : ViewModel() {
     }
 
     fun startBruteforce() {
+        if (_uiState.value.target.isEmpty()) {
+            return
+        }
         _uiState.update { it.copy(isRunning = true) }
         bruteforceJob = viewModelScope.launch {
             generateCombinations("", _uiState.value.target.length)
@@ -42,8 +45,10 @@ class BruteforceViewModel : ViewModel() {
     }
 
     private fun generateCombinations(prefix: String, length: Int) {
+        if (bruteforceJob?.isCancelled == true) return
         if (length == 0) {
             viewModelScope.launch {
+                if (!isActive) return@launch
                 _uiState.update { it.copy(currentAttempt = prefix) }
                 delay(1) // Allow UI to update
                 if (prefix == _uiState.value.target) {
@@ -53,7 +58,6 @@ class BruteforceViewModel : ViewModel() {
             return
         }
         for (char in _uiState.value.charset) {
-            if (bruteforceJob?.isCancelled == true) return
             generateCombinations(prefix + char, length - 1)
         }
     }

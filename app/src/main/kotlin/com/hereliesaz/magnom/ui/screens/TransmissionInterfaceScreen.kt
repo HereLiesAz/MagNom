@@ -21,13 +21,26 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.hereliesaz.magnom.data.DeviceRepository
+import com.hereliesaz.magnom.services.UsbCommunicationService
 import com.hereliesaz.magnom.viewmodels.TransmissionInterfaceViewModel
+import com.hereliesaz.magnom.viewmodels.TransmissionInterfaceViewModelFactory
 
 @Composable
 fun TransmissionInterfaceScreen(
     navController: NavController,
-    viewModel: TransmissionInterfaceViewModel = viewModel()
+    cardId: String,
+    deviceRepository: DeviceRepository,
+    usbCommunicationService: UsbCommunicationService
 ) {
+    val viewModel: TransmissionInterfaceViewModel = viewModel(
+        factory = TransmissionInterfaceViewModelFactory(
+            application = navController.context.applicationContext as android.app.Application,
+            deviceRepository = deviceRepository,
+            usbCommunicationService = usbCommunicationService,
+            cardId = cardId
+        )
+    )
     val cardProfile by viewModel.cardProfile.collectAsState()
     val transmissionStatus by viewModel.transmissionStatus.collectAsState()
     val isTransmitting = transmissionStatus == "Transmitting..."

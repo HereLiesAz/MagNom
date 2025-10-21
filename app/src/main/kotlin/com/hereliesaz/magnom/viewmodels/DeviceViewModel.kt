@@ -1,14 +1,9 @@
 package com.hereliesaz.magnom.viewmodels
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
-import android.os.IBinder
+import android.hardware.usb.UsbDevice
 import androidx.lifecycle.ViewModel
 import com.hereliesaz.magnom.data.Device
 import com.hereliesaz.magnom.data.DeviceRepository
-import com.hereliesaz.magnom.data.DeviceType
 import com.hereliesaz.magnom.services.UsbCommunicationService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,11 +13,13 @@ import kotlinx.coroutines.flow.update
 data class DeviceScreenUiState(
     val devices: List<Device> = emptyList(),
     val expandedDeviceIds: Set<String> = emptySet(),
+    val usbDevices: List<UsbDevice> = emptyList()
 )
 
 class DeviceViewModel : ViewModel() {
 
     private val deviceRepository = DeviceRepository()
+    private var usbService: UsbCommunicationService? = null
 
     private val _uiState = MutableStateFlow(DeviceScreenUiState())
     val uiState: StateFlow<DeviceScreenUiState> = _uiState.asStateFlow()
@@ -59,36 +56,25 @@ class DeviceViewModel : ViewModel() {
         }
     }
 
-    private var usbService: UsbCommunicationService? = null
-    private var isUsbServiceBound = false
+    fun onServiceConnected(service: UsbCommunicationService) {
+        usbService = service
+        refreshUsbDevices()
+    }
 
-    private val usbServiceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder = service as UsbCommunicationService.UsbBinder
-            usbService = binder.getService()
-            isUsbServiceBound = true
-            usbService?.connect()
-        }
+    fun onServiceDisconnected() {
+        usbService = null
+        _uiState.update { it.copy(usbDevices = emptyList()) }
+    }
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            usbService = null
-            isUsbServiceBound = false
+    fun refreshUsbDevices() {
+        usbService?.let {
+            _uiState.update { currentState ->
+                currentState.copy(usbDevices = it.getAvailableDevices())
+            }
         }
     }
 
-    fun onEnableDeviceClicked(context: Context, device: Device) {
-        if (device.type == DeviceType.USB_SERIAL) {
-            val intent = Intent(context, UsbCommunicationService::class.java)
-            context.bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        if (isUsbServiceBound) {
-            // It's important to unbind the service when the ViewModel is destroyed
-            // to avoid leaking the service connection.
-            // However, the context is not available here. This needs to be handled in the UI layer.
-        }
+    fun onEnableDeviceClicked(device: UsbDevice) {
+        usbService?.connect(device)
     }
 }

@@ -136,8 +136,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun onRestorePasswordEntered(password: String, sourceUri: Uri) {
         _showRestorePasswordDialog.value = false
         if (password.isNotEmpty()) {
-            val success = backupManager.restoreBackup(password, sourceUri)
-            if (success) {
+            val result = backupManager.restoreBackup(password, sourceUri)
+            if (result is com.hereliesaz.magnom.audio.Result.Success) {
                 _showRestartDialog.value = true
             }
         }

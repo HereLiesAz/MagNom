@@ -29,14 +29,37 @@ import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
 import com.hereliesaz.magnom.ui.screens.BruteforceScreen
 import com.hereliesaz.magnom.ui.screens.HelpScreen
+import com.hereliesaz.magnom.data.DeviceRepository
+import com.hereliesaz.magnom.services.UsbCommunicationService
 import com.hereliesaz.magnom.ui.screens.DeviceScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
+import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
+import androidx.compose.runtime.remember
 
 class MainActivity : ComponentActivity() {
+    private lateinit var usbCommunicationService: UsbCommunicationService
+    private var isUsbServiceBound = false
+
+    private val usbServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            usbCommunicationService = (service as UsbCommunicationService.UsbBinder).getService()
+            isUsbServiceBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            isUsbServiceBound = false
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -48,6 +71,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val audioFileViewModel: AudioFileViewModel = viewModel()
+                    val deviceRepository = remember { DeviceRepository() }
 
                     Column(modifier = Modifier.fillMaxSize()) {
                         Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
@@ -121,6 +145,17 @@ class MainActivity : ComponentActivity() {
                                 composable(Screen.Bruteforce.route) {
                                     BruteforceScreen()
                                 }
+                                composable("transmission/{cardId}") { backStackEntry ->
+                                    val cardId = backStackEntry.arguments?.getString("cardId")
+                                    if (cardId != null) {
+                                        TransmissionInterfaceScreen(
+                                            navController = navController,
+                                            cardId = cardId,
+                                            deviceRepository = deviceRepository,
+                                            usbCommunicationService = usbCommunicationService
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -128,6 +163,21 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Intent(this, UsbCommunicationService::class.java).also { intent ->
+            bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (isUsbServiceBound) {
+            unbindService(usbServiceConnection)
+            isUsbServiceBound = false
         }
     }
 }
