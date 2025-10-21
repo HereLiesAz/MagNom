@@ -10,8 +10,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,8 +35,6 @@ import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
 import com.hereliesaz.magnom.viewmodels.AudioRecordingViewModel
 import java.io.File
-import androidx.compose.material3.*
-import androidx.compose.runtime.LaunchedEffect
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +106,7 @@ fun AudioRecordingScreen(
             }
         ) {
             TextField(
-                value = selectedDevice?.productName ?: "Select a device",
+                value = selectedDevice?.productName?.toString() ?: "Select a device",
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = {
@@ -120,7 +124,7 @@ fun AudioRecordingScreen(
             ) {
                 availableDevices.forEach { device ->
                     DropdownMenuItem(
-                        text = { Text(device.productName) },
+                        text = { Text(device.productName.toString()) },
                         onClick = {
                             viewModel.onDeviceSelected(device)
                             expanded = false
