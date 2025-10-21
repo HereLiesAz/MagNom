@@ -38,7 +38,7 @@ fun CardSelectionScreen(navController: NavController, mainViewModel: MainViewMod
                     ListItem(
                         headlineContent = { Text(profile.name) },
                         modifier = Modifier.clickable {
-                            navController.navigate(Screen.Waveform.createRoute(profile.id))
+                            navController.navigate(Screen.Parse.createRoute(profile.id))
                         }
                     )
                     HorizontalDivider()
