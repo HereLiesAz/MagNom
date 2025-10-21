@@ -20,6 +20,7 @@ import coil.compose.AsyncImage
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.viewmodels.CardEditorViewModel
@@ -27,6 +28,7 @@ import com.hereliesaz.magnom.viewmodels.CardEditorViewModel
 @Composable
 fun CardEditorScreen(navController: NavController, cardEditorViewModel: CardEditorViewModel = viewModel()) {
     val uiState by cardEditorViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -103,11 +105,21 @@ fun CardEditorScreen(navController: NavController, cardEditorViewModel: CardEdit
             }
         }
 
-        Button(onClick = {
-            cardEditorViewModel.saveCardProfile()
-            navController.popBackStack()
-        }) {
-            Text("Save")
+        Row {
+            Button(onClick = {
+                cardEditorViewModel.saveCardProfile()
+                navController.popBackStack()
+            }) {
+                Text("Save")
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { cardEditorViewModel.smartBackgroundCheck(context, uiState.name) }) {
+                Text("Smart Background Check")
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { cardEditorViewModel.geminiDeepResearch(context) }) {
+                Text("Gemini Deep Research")
+            }
         }
 
         uiState.error?.let {

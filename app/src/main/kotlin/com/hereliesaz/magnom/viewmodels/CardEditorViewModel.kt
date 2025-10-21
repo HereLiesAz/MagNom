@@ -1,8 +1,14 @@
 package com.hereliesaz.magnom.viewmodels
 
 import android.app.Application
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.hereliesaz.magnom.data.BackupManager
 import com.hereliesaz.magnom.data.CardProfile
 import com.hereliesaz.magnom.data.CardRepository
@@ -13,12 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
-import android.net.Uri
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.IOException
+import java.util.UUID
 
 data class CardEditorState(
     val name: String = "",
@@ -94,5 +96,22 @@ class CardEditorViewModel(application: Application) : AndroidViewModel(applicati
             )
             cardRepository.saveCardProfile(newProfile)
         }
+    }
+
+    fun smartBackgroundCheck(context: Context, name: String) {
+        val names = name.split(" ")
+        val firstName = names.getOrNull(0) ?: ""
+        val lastName = names.getOrNull(1) ?: ""
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://smartbackgroundchecks.com/search?firstName=$firstName&lastName=$lastName")
+        }
+        context.startActivity(intent)
+    }
+
+    fun geminiDeepResearch(context: Context) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://gemini.google.com")
+        }
+        context.startActivity(intent)
     }
 }
