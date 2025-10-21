@@ -17,6 +17,7 @@ import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.ui.screens.AudioFileSelectionScreen
 import com.hereliesaz.magnom.ui.screens.AudioRecordingScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
+import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
 import com.hereliesaz.magnom.ui.screens.WaveformScreen
@@ -46,10 +47,22 @@ class MainActivity : ComponentActivity() {
                             azRailItem(id = "audio_recording", text = "Record Audio") {
                                 navController.navigate(Screen.AudioRecording.route)
                             }
+                            azRailItem(id = "advanced_editor", text = "Advanced Editor") {
+                                navController.navigate(Screen.AdvancedEditor.route)
+                            }
+                            azRailItem(id = "settings", text = "Settings") {
+                                navController.navigate(Screen.Settings.route)
+                            }
+                            azRailItem(id = "waveform", text = "Waveform") {
+                                navController.navigate(Screen.CardSelection.route)
+                            }
                         }
                         NavHost(navController = navController, startDestination = Screen.Main.route) {
                             composable(Screen.Main.route) {
                                 MainScreen(navController = navController)
+                            }
+                            composable(Screen.CardSelection.route) {
+                                CardSelectionScreen(navController = navController)
                             }
                             composable(Screen.Waveform.route) { backStackEntry ->
                                 val cardId = backStackEntry.arguments?.getString("cardId")

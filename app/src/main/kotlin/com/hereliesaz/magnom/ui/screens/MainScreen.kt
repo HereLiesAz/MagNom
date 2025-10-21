@@ -59,54 +59,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("MagNom") },
-                actions = {
-                    IconButton(onClick = { showMenu = !showMenu }) {
-                        Text("More")
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Advanced Editor") },
-                            onClick = {
-                                navController.navigate(Screen.AdvancedEditor.route)
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Settings") },
-                            onClick = {
-                                navController.navigate(Screen.Settings.route)
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Waveform") },
-                            onClick = {
-                                cardProfiles.firstOrNull()?.let {
-                                    navController.navigate(Screen.Waveform.createRoute(it.id))
-                                }
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Parse Audio File") },
-                            onClick = {
-                                navController.navigate(Screen.AudioFileSelection.route)
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Record Audio") },
-                            onClick = {
-                                navController.navigate(Screen.AudioRecording.route)
-                                showMenu = false
-                            }
-                        )
-                    }
-                }
+                title = { Text("MagNom") }
             )
         },
         floatingActionButton = {
