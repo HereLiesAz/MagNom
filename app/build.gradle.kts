@@ -54,6 +54,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.gson)
     implementation("com.github.HereLiesAz:AzNavRail:3.16")
+    implementation("net.lingala.zip4j:zip4j:2.11.5")
+    implementation("org.bouncycastle:bcprov-jdk15on:1.70")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
