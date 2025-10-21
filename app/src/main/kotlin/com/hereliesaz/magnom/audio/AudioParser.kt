@@ -1,209 +1,133 @@
 package com.hereliesaz.magnom.audio
 
-import android.content.Context
-import android.media.MediaCodec
-import android.media.MediaExtractor
-import android.media.MediaFormat
-import android.net.Uri
-import android.util.Log
-import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-class AudioParser(
-    private val context: Context,
-    private val uri: Uri,
-    private val zcrThreshold: Double,
-    private val windowSize: Int
-) {
+data class Swipe(val start: Int, val end: Int)
 
-    private var pcmData: ShortArray? = null
+object AudioParser {
 
-    fun parse(): Result<List<Swipe>> {
-        return when (val result = decodeAudio()) {
-            is Result.Success -> {
-                val swipes = detectSwipes(result.data)
-                if (swipes.isEmpty()) {
-                    Result.Error("No swipes detected in the audio file.")
-                } else {
-                    Result.Success(swipes)
-                }
-            }
-            is Result.Error -> result
+    fun readWavFile(file: File): Pair<ShortArray, Int> {
+        val fis = FileInputStream(file)
+        val buffer = ByteArray(44)
+        fis.read(buffer)
+
+        val byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN)
+        val sampleRate = byteBuffer.getInt(24)
+
+        val audioData = mutableListOf<Short>()
+        val audioBuffer = ByteArray(1024)
+        var bytesRead: Int
+
+        while (fis.read(audioBuffer).also { bytesRead = it } != -1) {
+            val shortBuffer = ByteBuffer.wrap(audioBuffer, 0, bytesRead).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+            val shortArray = ShortArray(shortBuffer.remaining())
+            shortBuffer.get(shortArray)
+            audioData.addAll(shortArray.toList())
         }
+
+        fis.close()
+        return Pair(audioData.toShortArray(), sampleRate)
     }
 
-    fun createTrimmedWavFile(swipe: Swipe, outputFile: File): Result<String> {
-        return when (val result = decodeAudio()) {
-            is Result.Success -> {
-                try {
-                    val pcmData = result.data
-                    val startSample = swipe.startTime.toInt()
-                    val endSample = swipe.endTime.toInt()
-                    val trimmedData = pcmData.sliceArray(startSample..endSample)
-                    addWavHeader(trimmedData, outputFile)
-                    Result.Success(outputFile.absolutePath)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    Result.Error("Failed to create trimmed WAV file.")
-                }
-            }
-            is Result.Error -> result
-        }
-    }
-
-    private fun decodeAudio(): Result<ShortArray> {
-        if (pcmData != null) {
-            return Result.Success(pcmData!!)
-        }
-        try {
-            val extractor = MediaExtractor()
-            val fileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")?.fileDescriptor
-            if (fileDescriptor == null) {
-                return Result.Error("Could not open the audio file.")
-            }
-            extractor.setDataSource(fileDescriptor)
-
-            val audioTrackIndex = findAudioTrack(extractor)
-            if (audioTrackIndex == -1) {
-                return Result.Error("Could not find an audio track in the file.")
-            }
-            extractor.selectTrack(audioTrackIndex)
-            val format = extractor.getTrackFormat(audioTrackIndex)
-            val mime = format.getString(MediaFormat.KEY_MIME)
-            if (mime == null) {
-                return Result.Error("Could not determine the MIME type of the audio track.")
-            }
-
-            val decoder = MediaCodec.createDecoderByType(mime)
-            decoder.configure(format, null, null, 0)
-            decoder.start()
-
-            val outputStream = ByteArrayOutputStream()
-            val bufferInfo = MediaCodec.BufferInfo()
-
-            var isEOS = false
-            while (!isEOS) {
-                val inputBufferIndex = decoder.dequeueInputBuffer(10000)
-                if (inputBufferIndex >= 0) {
-                    val inputBuffer = decoder.getInputBuffer(inputBufferIndex)
-                    val sampleSize = extractor.readSampleData(inputBuffer!!, 0)
-                    if (sampleSize < 0) {
-                        decoder.queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-                        isEOS = true
-                    } else {
-                        decoder.queueInputBuffer(inputBufferIndex, 0, sampleSize, extractor.sampleTime, 0)
-                        extractor.advance()
-                    }
-                }
-
-                var outputBufferIndex = decoder.dequeueOutputBuffer(bufferInfo, 10000)
-                while (outputBufferIndex >= 0) {
-                    val outputBuffer = decoder.getOutputBuffer(outputBufferIndex)
-                    val outData = ByteArray(bufferInfo.size)
-                    outputBuffer?.get(outData)
-                    outputStream.write(outData)
-                    decoder.releaseOutputBuffer(outputBufferIndex, false)
-                    outputBufferIndex = decoder.dequeueOutputBuffer(bufferInfo, 10000)
-                }
-            }
-
-            decoder.stop()
-            decoder.release()
-            extractor.release()
-
-            val decodedBytes = outputStream.toByteArray()
-            val shorts = ShortArray(decodedBytes.size / 2)
-            ByteBuffer.wrap(decodedBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
-            pcmData = shorts
-            return Result.Success(shorts)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            return Result.Error("An error occurred while reading the audio file.")
-        } catch (e: MediaCodec.CryptoException) {
-            e.printStackTrace()
-            return Result.Error("An error occurred while decoding the audio file.")
-        }
-    }
-
-    private fun findAudioTrack(extractor: MediaExtractor): Int {
-        for (i in 0 until extractor.trackCount) {
-            val format = extractor.getTrackFormat(i)
-            val mime = format.getString(MediaFormat.KEY_MIME)
-            if (mime?.startsWith("audio/") == true) {
-                return i
-            }
-        }
-        return -1
-    }
-
-    private fun detectSwipes(pcmData: ShortArray): List<Swipe> {
+    fun findSwipes(audioData: ShortArray, zcrThreshold: Double, windowSize: Int): List<Swipe> {
         val swipes = mutableListOf<Swipe>()
-        val zcr = mutableListOf<Double>()
-
-        for (i in 0 until pcmData.size - windowSize step windowSize) {
-            var crossings = 0
-            for (j in i until i + windowSize - 1) {
-                if ((pcmData[j] > 0 && pcmData[j + 1] <= 0) || (pcmData[j] < 0 && pcmData[j + 1] >= 0)) {
-                    crossings++
-                }
-            }
-            val zcrValue = crossings.toDouble() / windowSize
-            zcr.add(zcrValue)
-            Log.d("AudioParser", "ZCR value: $zcrValue")
-        }
-
         var inSwipe = false
-        var startTime = 0L
+        var swipeStart = 0
 
-        for ((index, value) in zcr.withIndex()) {
-            if (value > zcrThreshold && !inSwipe) {
+        for (i in 0 until audioData.size - windowSize step windowSize) {
+            val window = audioData.sliceArray(i until i + windowSize)
+            val zcr = calculateZCR(window)
+
+            if (zcr > zcrThreshold && !inSwipe) {
                 inSwipe = true
-                startTime = (index * windowSize).toLong()
-            } else if (value < zcrThreshold && inSwipe) {
+                swipeStart = i
+            } else if (zcr < zcrThreshold && inSwipe) {
                 inSwipe = false
-                swipes.add(Swipe(startTime, (index * windowSize).toLong()))
+                swipes.add(Swipe(swipeStart, i + windowSize))
             }
         }
 
         return swipes
     }
 
-    private fun addWavHeader(pcmData: ShortArray, wavFile: File) {
-        val wavOutputStream = FileOutputStream(wavFile)
-        val sampleRate = 44100
-        val numChannels = 1
-        val bitsPerSample = 16
-        val byteRate = sampleRate * numChannels * bitsPerSample / 8
-        val blockAlign = numChannels * bitsPerSample / 8
-        val dataSize = pcmData.size * 2
-        val fileSize = dataSize + 36
-
-        wavOutputStream.write("RIFF".toByteArray())
-        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(fileSize).array())
-        wavOutputStream.write("WAVE".toByteArray())
-        wavOutputStream.write("fmt ".toByteArray())
-        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(16).array())
-        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(1).array())
-        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(numChannels.toShort()).array())
-        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(sampleRate).array())
-        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(byteRate).array())
-        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(blockAlign.toShort()).array())
-        wavOutputStream.write(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(bitsPerSample.toShort()).array())
-        wavOutputStream.write("data".toByteArray())
-        wavOutputStream.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(dataSize).array())
-        wavOutputStream.write(pcmData.toByteArray())
-
-        wavOutputStream.close()
+    private fun calculateZCR(audioData: ShortArray): Double {
+        var crossings = 0
+        for (i in 0 until audioData.size - 1) {
+            if ((audioData[i] > 0 && audioData[i + 1] <= 0) || (audioData[i] < 0 && audioData[i + 1] >= 0)) {
+                crossings++
+            }
+        }
+        return crossings.toDouble() / audioData.size
     }
 
-    private fun ShortArray.toByteArray(): ByteArray {
-        val byteBuffer = ByteBuffer.allocate(size * 2)
-        byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
-        byteBuffer.asShortBuffer().put(this)
-        return byteBuffer.array()
+    fun createWavFile(audioData: ShortArray, sampleRate: Int): File {
+        val file = File.createTempFile("trimmed_audio", ".wav")
+        val fos = FileOutputStream(file)
+        val byteBuffer = ByteBuffer.allocate(audioData.size * 2).order(ByteOrder.LITTLE_ENDIAN)
+        val shortBuffer = byteBuffer.asShortBuffer()
+        shortBuffer.put(audioData)
+
+        writeWavHeader(fos, audioData.size * 2, sampleRate)
+        fos.write(byteBuffer.array())
+        fos.close()
+        return file
+    }
+
+    private fun writeWavHeader(fos: FileOutputStream, totalAudioLen: Int, sampleRate: Int) {
+        val totalDataLen = totalAudioLen + 36
+        val channels = 1
+        val byteRate = sampleRate * channels * 16 / 8
+
+        val header = ByteArray(44)
+        header[0] = 'R'.code.toByte()
+        header[1] = 'I'.code.toByte()
+        header[2] = 'F'.code.toByte()
+        header[3] = 'F'.code.toByte()
+        header[4] = (totalDataLen and 0xff).toByte()
+        header[5] = (totalDataLen shr 8 and 0xff).toByte()
+        header[6] = (totalDataLen shr 16 and 0xff).toByte()
+        header[7] = (totalDataLen shr 24 and 0xff).toByte()
+        header[8] = 'W'.code.toByte()
+        header[9] = 'A'.code.toByte()
+        header[10] = 'V'.code.toByte()
+        header[11] = 'E'.code.toByte()
+        header[12] = 'f'.code.toByte()
+        header[13] = 'm'.code.toByte()
+        header[14] = 't'.code.toByte()
+        header[15] = ' '.code.toByte()
+        header[16] = 16
+        header[17] = 0
+        header[18] = 0
+        header[19] = 0
+        header[20] = 1
+        header[21] = 0
+        header[22] = channels.toByte()
+        header[23] = 0
+        header[24] = (sampleRate and 0xff).toByte()
+        header[25] = (sampleRate shr 8 and 0xff).toByte()
+        header[26] = (sampleRate shr 16 and 0xff).toByte()
+        header[27] = (sampleRate shr 24 and 0xff).toByte()
+        header[28] = (byteRate and 0xff).toByte()
+        header[29] = (byteRate shr 8 and 0xff).toByte()
+        header[30] = (byteRate shr 16 and 0xff).toByte()
+        header[31] = (byteRate shr 24 and 0xff).toByte()
+        header[32] = (channels * 16 / 8).toByte()
+        header[33] = 0
+        header[34] = 16
+        header[35] = 0
+        header[36] = 'd'.code.toByte()
+        header[37] = 'a'.code.toByte()
+        header[38] = 't'.code.toByte()
+        header[39] = 'a'.code.toByte()
+        header[40] = (totalAudioLen and 0xff).toByte()
+        header[41] = (totalAudioLen shr 8 and 0xff).toByte()
+        header[42] = (totalAudioLen shr 16 and 0xff).toByte()
+        header[43] = (totalAudioLen shr 24 and 0xff).toByte()
+
+        fos.write(header, 0, 44)
     }
 }
