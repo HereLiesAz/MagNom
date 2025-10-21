@@ -53,18 +53,19 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles" ) {
                                     navController.navigate(Screen.Main.route)
                                 }
-                                azRailItem(id = "parse", text = "Parse") {
+                                azRailItem(id = "parse", text = "Parse", shape = AzButtonShape.NONE) {
                                     navController.navigate("parse/null")
                                 }
                                 azRailItem(id = "editor", text = "Editor") {
                                     navController.navigate("editor/null")
                                 }
+                                azRailItem(id = "advanced_editor", text = "Edit", shape = AzButtonShape.NONE) {
+                                navController.navigate(Screen.AdvancedEditor.route)
+                            }
                                 azRailItem(id = "magspoof_replay", text = "Replay", shape = AzButtonShape.NONE ) {
                                     navController.navigate(Screen.MagspoofReplay.route)
                                 }
-                                azRailItem(id = "advanced_editor", text = "Advanced") {
-                                    navController.navigate(Screen.AdvancedEditor.route)
-                                }
+
                                 azMenuItem(id = "settings", text = "Settings") {
                                     navController.navigate(Screen.Settings.route)
                                 }
