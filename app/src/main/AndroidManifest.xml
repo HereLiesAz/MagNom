@@ -19,6 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MagNom">
         <service android:name=".services.BleCommunicationService" android:enabled="true" />
+        <service android:name=".services.UsbCommunicationService" android:enabled="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -31,5 +32,9 @@
             </intent-filter>
         </activity>
     </application>
+
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="true" />
 
 </manifest>

@@ -69,6 +69,7 @@ The next major phase of development will focus on end-to-end testing with a hard
 
 ### Future Features:
 
+- [ ] USB Device Support and Device Management Screen
 - [x] In-App Help
 - [x] Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
 - [x] Create a trimmed audio clip for each swipe.

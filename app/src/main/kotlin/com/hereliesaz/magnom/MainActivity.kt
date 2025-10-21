@@ -28,6 +28,7 @@ import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
 import com.hereliesaz.magnom.ui.screens.HelpScreen
+import com.hereliesaz.magnom.ui.screens.DeviceScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
@@ -66,6 +67,9 @@ class MainActivity : ComponentActivity() {
                                 }
                                 azRailItem(id = "advanced_editor", text = "Advanced") {
                                     navController.navigate(Screen.AdvancedEditor.route)
+                                }
+                                azRailItem(id = "devices", text = "Devices") {
+                                    navController.navigate(Screen.Devices.route)
                                 }
                                 azMenuItem(id = "settings", text = "Settings") {
                                     navController.navigate(Screen.Settings.route)
@@ -106,6 +110,9 @@ class MainActivity : ComponentActivity() {
                                     if (route != null) {
                                         HelpScreen(route = route)
                                     }
+                                }
+                                composable(Screen.Devices.route) {
+                                    DeviceScreen()
                                 }
                             }
                         }
