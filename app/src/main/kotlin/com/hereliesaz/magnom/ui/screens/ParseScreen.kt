@@ -44,7 +44,7 @@ import androidx.navigation.NavController
 import com.hereliesaz.magnom.data.BackupManager
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
+import com.hereliesaz.magnom.viewmodels.ParseViewModel
 import com.hereliesaz.magnom.viewmodels.AudioRecordingViewModel
 import com.hereliesaz.magnom.viewmodels.WaveformViewModel
 import com.hereliesaz.magnom.viewmodels.WaveformViewModelFactory
