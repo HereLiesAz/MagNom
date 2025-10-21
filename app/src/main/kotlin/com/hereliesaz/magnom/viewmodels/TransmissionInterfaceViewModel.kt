@@ -9,6 +9,7 @@ import android.os.IBinder
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.magnom.data.BackupManager
 import com.hereliesaz.magnom.data.CardProfile
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.logic.TrackDataGenerator
@@ -21,7 +22,7 @@ import kotlinx.coroutines.Job
 
 class TransmissionInterfaceViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
 
-    private val cardRepository = CardRepository(application)
+    private val cardRepository = CardRepository(application, BackupManager(application))
     private var serviceCollectionJob: Job? = null
     private val trackDataGenerator = TrackDataGenerator()
     private val cardId: String = savedStateHandle.get<String>("cardId")!!
