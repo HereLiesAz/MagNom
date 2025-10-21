@@ -131,9 +131,6 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // --- Bluetooth Section ---
-        Text("Bluetooth", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -167,10 +164,6 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // --- Backup Section ---
-        Text("Backup & Restore", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
             verticalAlignment = Alignment.CenterVertically,

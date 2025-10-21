@@ -17,5 +17,7 @@ sealed class Screen(val route: String) {
     object CreateCardProfile : Screen("create_card_profile/{swipeData}") {
         fun createRoute(swipeData: String) = "create_card_profile/$swipeData"
     }
+    object MagspoofReplay : Screen("magspoof_replay")
+
     object CardSelection : Screen("card_selection")
 }

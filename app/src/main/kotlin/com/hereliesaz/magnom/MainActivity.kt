@@ -38,23 +38,27 @@ class MainActivity : ComponentActivity() {
 
                     Row(modifier = Modifier.fillMaxSize()) {
                         AzNavRail {
-                            azRailItem(id = "main", text = "Main") {
+                            azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles" ) {
                                 navController.navigate(Screen.Main.route)
                             }
-                            azRailItem(id = "audio_file_selection", text = "Parse Audio File") {
+                            azRailItem(id = "audio_file_selection", text = "Parse") {
                                 navController.navigate(Screen.AudioFileSelection.route)
                             }
-                            azRailItem(id = "audio_recording", text = "Record Audio") {
+                            azRailItem(id = "audio_recording", text = "Record") {
                                 navController.navigate(Screen.AudioRecording.route)
                             }
-                            azRailItem(id = "advanced_editor", text = "Advanced Editor") {
-                                navController.navigate(Screen.AdvancedEditor.route)
-                            }
-                            azRailItem(id = "settings", text = "Settings") {
-                                navController.navigate(Screen.Settings.route)
+
+                            azRailItem(id = "magspoof_replay", text = "Replay") {
+                                navController.navigate(Screen.MagspoofReplay.route)
                             }
                             azRailItem(id = "waveform", text = "Waveform") {
                                 navController.navigate(Screen.CardSelection.route)
+                            }
+                            azRailItem(id = "advanced_editor", text = "Advanced") {
+                            navController.navigate(Screen.AdvancedEditor.route)
+                        }
+                            azRailItem(id = "settings", text = "Settings") {
+                                navController.navigate(Screen.Settings.route)
                             }
                         }
                         NavHost(navController = navController, startDestination = Screen.Main.route) {
