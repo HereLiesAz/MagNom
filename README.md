@@ -41,6 +41,11 @@ The project is currently in the **alpha development stage**. The core infrastruc
 *   **Backup and Restore:**
     *   Allow the user to back up all their data to a password-protected file.
     *   Allow the user to restore their data from a backup file.
+*   **Smart Background Checks Integration:**
+    *   Add a button to take the user to smartbackgroundchecks.com.
+    *   Automatically populate the search fields with the name on the card.
+*   **Gemini Deep Research Integration:**
+    *   Add a button to take the user to Gemini Deep Research.
 
 ### Next Steps:
 
@@ -55,14 +60,6 @@ The next major phase of development will focus on end-to-end testing with a hard
 *   **Notes Section:**
     *   Add a notes section to each card profile.
     *   Allow users to add multiple notes of any size.
-*   **Smart Background Checks Integration:**
-    *   Add a button to take the user to smartbackgroundchecks.com.
-    *   Automatically populate the search fields with the name on the card.
-    *   Save the search results to a note in the card profile.
-*   **Gemini Deep Research Integration:**
-    *   Add a button to take the user to Gemini Deep Research.
-    *   Generate a report for the name on the card.
-    *   Allow the user to copy the report contents to a new note in the card profile.
 *   **Immediate Save:**
     *   All changes in the app must be immediately saved upon being made.
 *   **In-App Help:**
