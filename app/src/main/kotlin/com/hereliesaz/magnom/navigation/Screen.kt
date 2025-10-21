@@ -2,10 +2,9 @@ package com.hereliesaz.magnom.navigation
 
 sealed class Screen(val route: String) {
     object Main : Screen("main")
-    object Waveform : Screen("waveform/{cardId}") {
-        fun createRoute(cardId: String) = "waveform/$cardId"
+    object Parse : Screen("parse/{cardId}") {
+        fun createRoute(cardId: String) = "parse/$cardId"
     }
-    object AudioFileSelection : Screen("audio_file_selection")
     object SwipeSelection : Screen("swipe_selection")
     object AdvancedEditor : Screen("advanced_editor")
     object Settings : Screen("settings")
@@ -13,7 +12,6 @@ sealed class Screen(val route: String) {
     object Transmission : Screen("transmission/{cardId}") {
         fun createRoute(cardId: String) = "transmission/$cardId"
     }
-    object AudioRecording : Screen("audio_recording")
     object CreateCardProfile : Screen("create_card_profile/{swipeData}") {
         fun createRoute(swipeData: String) = "create_card_profile/$swipeData"
     }

@@ -23,15 +23,13 @@ import androidx.navigation.compose.rememberNavController
 import com.hereliesaz.aznavrail.AzNavRail
 import com.hereliesaz.aznavrail.model.AzButtonShape
 import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.ui.screens.AudioFileSelectionScreen
-import com.hereliesaz.magnom.ui.screens.AudioRecordingScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
+import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
-import com.hereliesaz.magnom.ui.screens.WaveformScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
-import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
+import com.hereliesaz.magnom.viewmodels.ParseViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,7 +42,6 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    val audioFileViewModel: AudioFileViewModel = viewModel()
 
                     Column(modifier = Modifier.fillMaxSize()) {
                         Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
@@ -54,22 +51,16 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles" ) {
                                     navController.navigate(Screen.Main.route)
                                 }
-                                azRailItem(id = "audio_file_selection", text = "Parse") {
-                                    navController.navigate(Screen.AudioFileSelection.route)
-                                }
-                                azRailItem(id = "audio_recording", text = "Record", shape = AzButtonShape.NONE ) {
-                                    navController.navigate(Screen.AudioRecording.route)
-                                }
-                                azRailItem(id = "waveform", text = "Waveform", shape = AzButtonShape.NONE ) {
-                                    navController.navigate(Screen.CardSelection.route)
+                                azRailItem(id = "parse", text = "Parse") {
+                                    navController.navigate("parse/null")
                                 }
                                 azRailItem(id = "magspoof_replay", text = "Replay", shape = AzButtonShape.NONE ) {
-                                navController.navigate(Screen.MagspoofReplay.route)
-                            }
+                                    navController.navigate(Screen.MagspoofReplay.route)
+                                }
                                 azRailItem(id = "advanced_editor", text = "Advanced") {
                                     navController.navigate(Screen.AdvancedEditor.route)
                                 }
-                                azMenuItem(id = "settings", text = "Settings") {
+                                azRailItem(id = "settings", text = "Settings") {
                                     navController.navigate(Screen.Settings.route)
                                 }
                             }
@@ -80,20 +71,12 @@ class MainActivity : ComponentActivity() {
                                 composable(Screen.CardSelection.route) {
                                     CardSelectionScreen(navController = navController)
                                 }
-                                composable(Screen.Waveform.route) { backStackEntry ->
+                                composable("parse/{cardId}") { backStackEntry ->
                                     val cardId = backStackEntry.arguments?.getString("cardId")
-                                    if (cardId != null) {
-                                        WaveformScreen(navController = navController, cardId = cardId)
-                                    }
-                                }
-                                composable(Screen.AudioFileSelection.route) {
-                                    AudioFileSelectionScreen(navController = navController, audioFileViewModel = audioFileViewModel)
+                                    ParseScreen(navController = navController, cardId = if(cardId == "null") null else cardId)
                                 }
                                 composable(Screen.SwipeSelection.route) {
-                                    SwipeSelectionScreen(navController = navController, audioFileViewModel = audioFileViewModel)
-                                }
-                                composable(Screen.AudioRecording.route) {
-                                    AudioRecordingScreen(navController = navController, audioFileViewModel = audioFileViewModel)
+                                    SwipeSelectionScreen(navController = navController)
                                 }
                                 composable(Screen.CreateCardProfile.route) { backStackEntry ->
                                     val swipeData = backStackEntry.arguments?.getString("swipeData")
