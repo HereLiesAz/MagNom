@@ -1,39 +1,62 @@
 package com.hereliesaz.magnom.data
 
 import android.content.Context
-import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 
 class SettingsRepository(context: Context) {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("magnom_settings", Context.MODE_PRIVATE)
+    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
-    companion object {
-        private const val KEY_BACKUP_ENABLED = "backup_enabled"
-        private const val KEY_BACKUP_PASSWORD = "backup_password"
-        private const val KEY_BACKUP_LOCATION = "backup_location"
+    private val sharedPreferences = EncryptedSharedPreferences.create(
+        "user_settings",
+        masterKeyAlias,
+        context,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
+    fun setDataSharing(enabled: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean("data_sharing_enabled", enabled)
+            apply()
+        }
     }
 
-    fun setBackupEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_BACKUP_ENABLED, enabled).apply()
-    }
-
-    fun isBackupEnabled(): Boolean {
-        return prefs.getBoolean(KEY_BACKUP_ENABLED, false)
+    fun isDataSharingEnabled(): Boolean {
+        return sharedPreferences.getBoolean("data_sharing_enabled", false)
     }
 
     fun setBackupPassword(password: String) {
-        prefs.edit().putString(KEY_BACKUP_PASSWORD, password).apply()
+        with(sharedPreferences.edit()) {
+            putString("backup_password", password)
+            apply()
+        }
     }
 
     fun getBackupPassword(): String {
-        return prefs.getString(KEY_BACKUP_PASSWORD, "") ?: ""
+        return sharedPreferences.getString("backup_password", "") ?: ""
     }
 
     fun setBackupLocation(location: String) {
-        prefs.edit().putString(KEY_BACKUP_LOCATION, location).apply()
+        with(sharedPreferences.edit()) {
+            putString("backup_location", location)
+            apply()
+        }
     }
 
     fun getBackupLocation(): String {
-        return prefs.getString(KEY_BACKUP_LOCATION, "") ?: ""
+        return sharedPreferences.getString("backup_location", "") ?: ""
+    }
+
+    fun setBackupEnabled(enabled: Boolean) {
+        with(sharedPreferences.edit()) {
+            putBoolean("backup_enabled", enabled)
+            apply()
+        }
+    }
+
+    fun isBackupEnabled(): Boolean {
+        return sharedPreferences.getBoolean("backup_enabled", false)
     }
 }

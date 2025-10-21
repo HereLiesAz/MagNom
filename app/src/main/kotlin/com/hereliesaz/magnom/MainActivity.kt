@@ -27,6 +27,7 @@ import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
+import com.hereliesaz.magnom.ui.screens.BruteforceScreen
 import com.hereliesaz.magnom.ui.screens.HelpScreen
 import com.hereliesaz.magnom.ui.screens.DeviceScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
@@ -71,6 +72,9 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "devices", text = "Devices") {
                                     navController.navigate(Screen.Devices.route)
                                 }
+                                azRailItem(id = "bruteforce", text = "Bruteforce") {
+                                    navController.navigate(Screen.Bruteforce.route)
+                                }
                                 azMenuItem(id = "settings", text = "Settings") {
                                     navController.navigate(Screen.Settings.route)
                                 }
@@ -113,6 +117,9 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable(Screen.Devices.route) {
                                     DeviceScreen()
+                                }
+                                composable(Screen.Bruteforce.route) {
+                                    BruteforceScreen()
                                 }
                             }
                         }
