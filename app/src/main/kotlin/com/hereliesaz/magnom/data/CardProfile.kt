@@ -5,5 +5,8 @@ data class CardProfile(
     val name: String,
     val pan: String,
     val expirationDate: String,
-    val serviceCode: String
+    val serviceCode: String,
+    val notes: String = "",
+    val frontImageUri: String? = null,
+    val backImageUri: String? = null
 )

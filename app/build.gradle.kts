@@ -56,6 +56,8 @@ dependencies {
     implementation(libs.aznavrail)
     implementation(libs.zip4j)
     implementation(libs.bcprov.jdk15on)
+    implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("com.google.android.gms:play-services-tasks:18.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

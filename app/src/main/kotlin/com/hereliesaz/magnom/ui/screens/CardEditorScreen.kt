@@ -3,10 +3,20 @@ package com.hereliesaz.magnom.ui.screens
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -16,6 +26,18 @@ import com.hereliesaz.magnom.viewmodels.CardEditorViewModel
 @Composable
 fun CardEditorScreen(navController: NavController, cardEditorViewModel: CardEditorViewModel = viewModel()) {
     val uiState by cardEditorViewModel.uiState.collectAsState()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        cardEditorViewModel.onFrontImageUriChange(uri)
+    }
+
+    val backLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        cardEditorViewModel.onBackImageUriChange(uri)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TextField(
@@ -38,11 +60,53 @@ fun CardEditorScreen(navController: NavController, cardEditorViewModel: CardEdit
             onValueChange = cardEditorViewModel::onServiceCodeChange,
             label = { Text("Service Code") }
         )
+        TextField(
+            value = uiState.notes,
+            onValueChange = cardEditorViewModel::onNotesChange,
+            label = { Text("Notes") }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row {
+            Button(onClick = { launcher.launch("image/*") }) {
+                Text("Select Front Image")
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { backLauncher.launch("image/*") }) {
+                Text("Select Back Image")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row {
+            uiState.frontImageUri?.let {
+                AsyncImage(
+                    model = it,
+                    contentDescription = "Front of card",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            uiState.backImageUri?.let {
+                AsyncImage(
+                    model = it,
+                    contentDescription = "Back of card",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
         Button(onClick = {
             cardEditorViewModel.saveCardProfile()
             navController.popBackStack()
         }) {
             Text("Save")
+        }
+
+        uiState.error?.let {
+            Text(text = it, color = MaterialTheme.colorScheme.error)
         }
     }
 }
