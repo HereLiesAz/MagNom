@@ -41,6 +41,10 @@ The project is currently in the **alpha development stage**. The core infrastruc
 *   **Backup and Restore:**
     *   Allow the user to back up all their data to a password-protected file.
     *   Allow the user to restore their data from a backup file.
+*   **Card Photo Scanning:**
+    *   Implement card photo scanning as part of the card profile creation process.
+    *   Save front and back images of the card.
+    *   Automatically parse text from the images to populate the appropriate fields.
 
 ### Next Steps:
 
@@ -48,10 +52,6 @@ The next major phase of development will focus on end-to-end testing with a hard
 
 ### Future Features:
 
-*   **Card Photo Scanning:**
-    *   Implement card photo scanning as part of the card profile creation process.
-    *   Save front and back images of the card.
-    *   Automatically parse text from the images to populate the appropriate fields.
 *   **Notes Section:**
     *   Add a notes section to each card profile.
     *   Allow users to add multiple notes of any size.
