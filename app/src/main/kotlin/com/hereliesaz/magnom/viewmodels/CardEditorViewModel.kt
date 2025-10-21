@@ -3,6 +3,7 @@ package com.hereliesaz.magnom.viewmodels
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.magnom.data.BackupManager
 import com.hereliesaz.magnom.data.CardProfile
 import com.hereliesaz.magnom.data.CardRepository
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +22,7 @@ data class CardEditorState(
 
 class CardEditorViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val cardRepository = CardRepository(application)
+    private val cardRepository = CardRepository(application, BackupManager(application))
     private val _uiState = MutableStateFlow(CardEditorState())
     val uiState: StateFlow<CardEditorState> = _uiState.asStateFlow()
 

@@ -102,7 +102,7 @@ fun AudioRecordingScreen(
             }
         ) {
             TextField(
-                value = selectedDevice?.productName ?: "Select a device",
+                value = selectedDevice?.productName?.toString() ?: "Select a device",
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = {
@@ -120,7 +120,7 @@ fun AudioRecordingScreen(
             ) {
                 availableDevices.forEach { device ->
                     DropdownMenuItem(
-                        text = { Text(device.productName) },
+                        text = { Text(device.productName.toString()) },
                         onClick = {
                             viewModel.onDeviceSelected(device)
                             expanded = false

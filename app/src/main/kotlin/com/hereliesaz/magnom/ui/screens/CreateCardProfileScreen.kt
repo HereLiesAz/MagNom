@@ -12,6 +12,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.hereliesaz.magnom.audio.Swipe
+import com.hereliesaz.magnom.data.BackupManager
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.viewmodels.CreateCardProfileViewModel
 import com.hereliesaz.magnom.viewmodels.CreateCardProfileViewModelFactory
@@ -23,9 +24,8 @@ fun CreateCardProfileScreen(
 ) {
     val swipe = Gson().fromJson(swipeData, Swipe::class.java)
     val context = LocalContext.current
-    val cardRepository = CardRepository(context)
     val viewModel: CreateCardProfileViewModel = viewModel(
-        factory = CreateCardProfileViewModelFactory(swipe, cardRepository)
+        factory = CreateCardProfileViewModelFactory(swipe, CardRepository(context, BackupManager(context)))
     )
 
     val name by viewModel.name.collectAsState()

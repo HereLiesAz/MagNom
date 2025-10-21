@@ -20,6 +20,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.hereliesaz.magnom.data.BackupManager
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.viewmodels.WaveformViewModel
 import com.hereliesaz.magnom.viewmodels.WaveformViewModelFactory
@@ -30,9 +31,11 @@ fun WaveformScreen(
     cardId: String
 ) {
     val context = LocalContext.current
-    val cardRepository = CardRepository(context.applicationContext as Application)
     val waveformViewModel: WaveformViewModel = viewModel(
-        factory = WaveformViewModelFactory(cardRepository, cardId)
+        factory = WaveformViewModelFactory(
+            CardRepository(context.applicationContext as Application, BackupManager(context.applicationContext as Application)),
+            cardId
+        )
     )
 
     val uiState by waveformViewModel.uiState.collectAsState()
