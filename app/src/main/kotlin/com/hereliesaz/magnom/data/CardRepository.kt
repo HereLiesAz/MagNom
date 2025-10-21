@@ -23,6 +23,9 @@ class CardRepository(context: Context, private val backupManager: BackupManager?
     }
 
     fun saveCardProfile(profile: CardProfile) {
+        if (profile.pan.isBlank() || profile.name.isBlank() || profile.expirationDate.isBlank() || profile.serviceCode.isBlank()) {
+            return // Or throw an exception
+        }
         val json = gson.toJson(profile)
         sharedPreferences.edit().putString(profile.id, json).apply()
         onDataChanged()

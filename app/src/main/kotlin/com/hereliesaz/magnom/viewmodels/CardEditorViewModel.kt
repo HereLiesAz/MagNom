@@ -14,15 +14,18 @@ import com.hereliesaz.magnom.data.CardProfile
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.data.ImageProcessingRepository
 import com.hereliesaz.magnom.utils.TextParsing
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.UUID
+
+sealed class NavigationEvent {
+    data class ToUrl(val url: String) : NavigationEvent()
+}
 
 data class CardEditorState(
     val id: String? = null,
@@ -33,7 +36,7 @@ data class CardEditorState(
     val notes: String = "",
     val frontImageUri: String? = null,
     val backImageUri: String? = null,
-    val error: String? = null
+    val error: CardEditorError? = null
 )
 
 class CardEditorViewModel(application: Application, private val cardId: String? = null) : AndroidViewModel(application) {
@@ -43,6 +46,8 @@ class CardEditorViewModel(application: Application, private val cardId: String? 
     private val _uiState = MutableStateFlow(CardEditorState())
     val uiState: StateFlow<CardEditorState> = _uiState.asStateFlow()
     private var saveJob: Job? = null
+    private val _navigationEvent = Channel<NavigationEvent>(Channel.BUFFERED)
+    val navigationEvent = _navigationEvent.receiveAsFlow()
 
     init {
         cardId?.let {
@@ -69,18 +74,30 @@ class CardEditorViewModel(application: Application, private val cardId: String? 
     }
 
     fun onPanChange(pan: String) {
-        _uiState.value = _uiState.value.copy(pan = pan)
-        debouncedSave()
+        if (pan.length > 19 || !pan.all { it.isDigit() }) {
+            _uiState.value = _uiState.value.copy(error = CardEditorError.InvalidPan)
+        } else {
+            _uiState.value = _uiState.value.copy(pan = pan, error = null)
+            debouncedSave()
+        }
     }
 
     fun onExpirationDateChange(expirationDate: String) {
-        _uiState.value = _uiState.value.copy(expirationDate = expirationDate)
-        debouncedSave()
+        if (expirationDate.length != 4 || !expirationDate.all { it.isDigit() }) {
+            _uiState.value = _uiState.value.copy(error = CardEditorError.InvalidExpirationDate)
+        } else {
+            _uiState.value = _uiState.value.copy(expirationDate = expirationDate, error = null)
+            debouncedSave()
+        }
     }
 
     fun onServiceCodeChange(serviceCode: String) {
-        _uiState.value = _uiState.value.copy(serviceCode = serviceCode)
-        debouncedSave()
+        if (serviceCode.length != 3 || !serviceCode.all { it.isDigit() }) {
+            _uiState.value = _uiState.value.copy(error = CardEditorError.InvalidServiceCode)
+        } else {
+            _uiState.value = _uiState.value.copy(serviceCode = serviceCode, error = null)
+            debouncedSave()
+        }
     }
 
     fun onNotesChange(notes: String) {
@@ -100,7 +117,7 @@ class CardEditorViewModel(application: Application, private val cardId: String? 
                     parsedData.name?.let { onNameChange(it) }
                 }
                 result.onFailure {
-                    _uiState.value = _uiState.value.copy(error = it.message)
+                    // This error is not a validation error, so we'll just log it for now
                 }
             }
         }
@@ -112,6 +129,7 @@ class CardEditorViewModel(application: Application, private val cardId: String? 
     }
 
     fun saveCardProfile() {
+        if (_uiState.value.error != null) return
         viewModelScope.launch(Dispatchers.IO) {
             val currentState = _uiState.value
             val newProfile = CardProfile(
@@ -139,20 +157,18 @@ class CardEditorViewModel(application: Application, private val cardId: String? 
         }
     }
 
-    fun smartBackgroundCheck(context: Context, name: String) {
+    fun smartBackgroundCheck(name: String) {
         val names = name.split(" ")
         val firstName = names.getOrNull(0) ?: ""
         val lastName = names.getOrNull(1) ?: ""
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://smartbackgroundchecks.com/search?firstName=$firstName&lastName=$lastName")
+        viewModelScope.launch {
+            _navigationEvent.send(NavigationEvent.ToUrl("https://smartbackgroundchecks.com/search?firstName=$firstName&lastName=$lastName"))
         }
-        context.startActivity(intent)
     }
 
-    fun geminiDeepResearch(context: Context) {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("https://gemini.google.com")
+    fun geminiDeepResearch() {
+        viewModelScope.launch {
+            _navigationEvent.send(NavigationEvent.ToUrl("https://gemini.google.com"))
         }
-        context.startActivity(intent)
     }
 }

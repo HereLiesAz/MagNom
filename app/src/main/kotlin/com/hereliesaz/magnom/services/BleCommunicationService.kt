@@ -21,6 +21,7 @@ import android.content.pm.PackageManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.hereliesaz.magnom.logic.TrackDataGenerator
@@ -34,7 +35,6 @@ enum class ConnectionState {
     DISCONNECTED, CONNECTING, CONNECTED
 }
 
-@SuppressLint("MissingPermission")
 class BleCommunicationService : Service() {
 
     private val binder = LocalBinder()
@@ -76,30 +76,42 @@ class BleCommunicationService : Service() {
 
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-            when (newState) {
-                BluetoothProfile.STATE_CONNECTED -> {
-                    _connectionState.value = ConnectionState.CONNECTED
-                    bluetoothGatt = gatt
-                    writeQueue.clear()
-                    isWriting = false
-                    bluetoothGatt?.discoverServices()
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                when (newState) {
+                    BluetoothProfile.STATE_CONNECTED -> {
+                        _connectionState.value = ConnectionState.CONNECTED
+                        bluetoothGatt = gatt
+                        writeQueue.clear()
+                        isWriting = false
+                        bluetoothGatt?.discoverServices()
+                    }
+                    BluetoothProfile.STATE_DISCONNECTED -> {
+                        _connectionState.value = ConnectionState.DISCONNECTED
+                        bluetoothGatt?.close()
+                        bluetoothGatt = null
+                        writeQueue.clear()
+                        isWriting = false
+                    }
                 }
-                BluetoothProfile.STATE_DISCONNECTED -> {
-                    _connectionState.value = ConnectionState.DISCONNECTED
-                    bluetoothGatt?.close()
-                    bluetoothGatt = null
-                    writeQueue.clear()
-                    isWriting = false
-                }
+            } else {
+                Log.e("BleCommunicationService", "onConnectionStateChange received error status: $status")
+                _connectionState.value = ConnectionState.DISCONNECTED
+                bluetoothGatt?.close()
+                bluetoothGatt = null
+                writeQueue.clear()
+                isWriting = false
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            super.onServicesDiscovered(gatt, status)
-            val service = gatt?.getService(magSpoofServiceUUID)
-            track1Characteristic = service?.getCharacteristic(track1DataUUID)
-            track2Characteristic = service?.getCharacteristic(track2DataUUID)
-            controlPointCharacteristic = service?.getCharacteristic(controlPointUUID)
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                val service = gatt?.getService(magSpoofServiceUUID)
+                track1Characteristic = service?.getCharacteristic(track1DataUUID)
+                track2Characteristic = service?.getCharacteristic(track2DataUUID)
+                controlPointCharacteristic = service?.getCharacteristic(controlPointUUID)
+            } else {
+                Log.e("BleCommunicationService", "onServicesDiscovered received error status: $status")
+            }
         }
 
         override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
@@ -125,33 +137,31 @@ class BleCommunicationService : Service() {
     }
 
     fun startScan() {
-        if (checkPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-            val scanSettings = ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                .build()
-            _discoveredDevices.value = emptyList() // Clear previous results
-            bluetoothAdapter.bluetoothLeScanner.startScan(null, scanSettings, scanCallback)
-        }
+        if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
+        val scanSettings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .build()
+        _discoveredDevices.value = emptyList() // Clear previous results
+        bluetoothAdapter.bluetoothLeScanner.startScan(null, scanSettings, scanCallback)
     }
 
     fun stopScan() {
-        if (checkPermission(Manifest.permission.BLUETOOTH_SCAN)) {
-            bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
-        }
+        if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
+        bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)
     }
 
+    @SuppressLint("MissingPermission")
     fun connect(device: BluetoothDevice) {
-        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
-            stopScan()
-            _connectionState.value = ConnectionState.CONNECTING
-            device.connectGatt(this, false, gattCallback)
-        }
+        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
+        stopScan()
+        _connectionState.value = ConnectionState.CONNECTING
+        device.connectGatt(this, false, gattCallback)
     }
 
+    @SuppressLint("MissingPermission")
     fun disconnect() {
-        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
-            bluetoothGatt?.disconnect()
-        }
+        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
+        bluetoothGatt?.disconnect()
     }
 
     @Suppress("DEPRECATION")
@@ -178,15 +188,15 @@ class BleCommunicationService : Service() {
         processWriteQueue()
     }
 
+    @SuppressLint("MissingPermission")
     @Suppress("DEPRECATION")
     private fun processWriteQueue() {
         if (isWriting || writeQueue.isEmpty()) {
             return
         }
-        if (checkPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
-            isWriting = true
-            bluetoothGatt?.writeCharacteristic(writeQueue.poll())
-        }
+        if (!hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return
+        isWriting = true
+        bluetoothGatt?.writeCharacteristic(writeQueue.poll())
     }
 
 
@@ -206,8 +216,15 @@ class BleCommunicationService : Service() {
         startForeground(1, notification)
     }
 
-    private fun checkPermission(permission: String): Boolean {
-        return ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+    private fun hasPermission(permission: String): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            (permission == Manifest.permission.BLUETOOTH_SCAN || permission == Manifest.permission.BLUETOOTH_CONNECT)) {
+            return ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S &&
+            (permission == Manifest.permission.BLUETOOTH_ADMIN || permission == Manifest.permission.ACCESS_FINE_LOCATION)) {
+            return ActivityCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        }
+        return true
     }
 
     override fun onBind(intent: Intent): IBinder {

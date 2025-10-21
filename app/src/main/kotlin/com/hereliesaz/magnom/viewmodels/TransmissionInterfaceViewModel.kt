@@ -19,13 +19,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 
-class TransmissionInterfaceViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
+class TransmissionInterfaceViewModel(
+    application: Application,
+    private val deviceRepository: DeviceRepository,
+    private val usbCommunicationService: UsbCommunicationService,
+    private val cardId: String
+) : AndroidViewModel(application) {
 
     private val cardRepository = CardRepository(application, BackupManager(application))
-    private val deviceRepository = DeviceRepository()
     private var bleServiceCollectionJob: Job? = null
     private val trackDataGenerator = TrackDataGenerator()
-    private val cardId: String = savedStateHandle.get<String>("cardId")!!
 
     private var bleService: BleCommunicationService? = null
     private var usbService: UsbCommunicationService? = null
@@ -55,7 +58,10 @@ class TransmissionInterfaceViewModel(application: Application, savedStateHandle:
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as UsbCommunicationService.UsbBinder
             usbService = binder.getService()
-            usbService?.connect()
+            val devices = usbService?.getAvailableDevices()
+            if (devices?.isNotEmpty() == true) {
+                usbService?.connect(devices[0])
+            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
