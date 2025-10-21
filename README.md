@@ -55,6 +55,13 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Allow users to add multiple notes of any size.
 *   **Immediate Save:**
     *   All changes in the app are immediately saved upon being made.
+*   **In-App Help:**
+    *   Add info icons to all UI elements to provide popup dialogs with information.
+    *   Add a "Help" button to the `AzNavRail` that brings up a dialog with detailed instructions for the current screen.
+*   **Recording Device Selection:**
+    *   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
+*   **Trimmed Audio Clip Creation:**
+    *   Create a trimmed audio clip for each swipe.
 
 ### Next Steps:
 
@@ -62,8 +69,6 @@ The next major phase of development will focus on end-to-end testing with a hard
 
 ### Future Features:
 
-*   **In-App Help:**
-    *   Add info icons to all UI elements to provide popup dialogs with information.
-    *   Add a "Help" button to the `AzNavRail` that brings up a dialog with detailed instructions for the current screen.
-*   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
-*   Create a trimmed audio clip for each swipe.
+- [x] In-App Help
+- [x] Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
+- [x] Create a trimmed audio clip for each swipe.

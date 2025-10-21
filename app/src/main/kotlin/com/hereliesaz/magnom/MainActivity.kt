@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.hereliesaz.aznavrail.AzNavRail
 import com.hereliesaz.aznavrail.model.AzButtonShape
@@ -26,6 +27,7 @@ import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
+import com.hereliesaz.magnom.ui.screens.HelpScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
@@ -69,6 +71,12 @@ class MainActivity : ComponentActivity() {
                                 azMenuItem(id = "settings", text = "Settings") {
                                     navController.navigate(Screen.Settings.route)
                                 }
+                                azMenuItem(id = "help", text = "Help") {
+                                    val currentRoute = navController.currentBackStackEntry?.destination?.route
+                                    if (currentRoute != null) {
+                                        navController.navigate(Screen.Help.createRoute(currentRoute))
+                                    }
+                                }
                             }
                             NavHost(navController = navController, startDestination = Screen.Main.route) {
                                 composable(Screen.Main.route) {
@@ -93,6 +101,12 @@ class MainActivity : ComponentActivity() {
                                 composable("editor/{cardId}") { backStackEntry ->
                                     val cardId = backStackEntry.arguments?.getString("cardId")
                                     CardEditorScreen(navController = navController, cardId = if(cardId == "null") null else cardId)
+                                }
+                                composable("help/{route}") { backStackEntry ->
+                                    val route = backStackEntry.arguments?.getString("route")
+                                    if (route != null) {
+                                        HelpScreen(route = route)
+                                    }
                                 }
                             }
                         }

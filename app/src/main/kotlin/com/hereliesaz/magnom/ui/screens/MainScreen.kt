@@ -71,7 +71,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                         ListItem(
                             headlineContent = { Text(profile.name) },
                             modifier = Modifier.clickable {
-                                navController.navigate(Screen.Editor.createRoute(profile.id))
+                                navController.navigate(Screen.Transmission.createRoute(profile.id))
                             }
                         )
                         HorizontalDivider()
