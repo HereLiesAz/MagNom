@@ -19,10 +19,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.hereliesaz.magnom.ui.components.EthicalUseDialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.navigation.Screen
@@ -32,6 +36,11 @@ import com.hereliesaz.magnom.viewmodels.MainViewModel
 fun MainScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
     val cardProfiles by mainViewModel.cardProfiles.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val showDialog = remember { mutableStateOf(true) }
+
+    if (showDialog.value) {
+        EthicalUseDialog(onDismiss = { showDialog.value = false })
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

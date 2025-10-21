@@ -27,13 +27,14 @@ import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
+import com.hereliesaz.magnom.ui.screens.BruteforceScreen
 import com.hereliesaz.magnom.ui.screens.HelpScreen
 import com.hereliesaz.magnom.ui.screens.DeviceScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
-import com.hereliesaz.magnom.viewmodels.ParseViewModel
+import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,7 +47,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    val audioFileViewModel: ParseViewModel = viewModel()
+                    val audioFileViewModel: AudioFileViewModel = viewModel()
 
                     Column(modifier = Modifier.fillMaxSize()) {
                         Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
@@ -71,6 +72,9 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "devices", text = "Devices") {
                                     navController.navigate(Screen.Devices.route)
                                 }
+                                azRailItem(id = "bruteforce", text = "Bruteforce") {
+                                    navController.navigate(Screen.Bruteforce.route)
+                                }
                                 azMenuItem(id = "settings", text = "Settings") {
                                     navController.navigate(Screen.Settings.route)
                                 }
@@ -93,7 +97,7 @@ class MainActivity : ComponentActivity() {
                                     ParseScreen(navController = navController, cardId = if(cardId == "null") null else cardId, audioFileViewModel = audioFileViewModel)
                                 }
                                 composable(Screen.SwipeSelection.route) {
-                                    SwipeSelectionScreen(navController = navController, parseViewModel = audioFileViewModel)
+                                    SwipeSelectionScreen(navController = navController, audioFileViewModel = audioFileViewModel)
                                 }
                                 composable(Screen.CreateCardProfile.route) { backStackEntry ->
                                     val swipeData = backStackEntry.arguments?.getString("swipeData")
@@ -113,6 +117,9 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable(Screen.Devices.route) {
                                     DeviceScreen()
+                                }
+                                composable(Screen.Bruteforce.route) {
+                                    BruteforceScreen()
                                 }
                             }
                         }
