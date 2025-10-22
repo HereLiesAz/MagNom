@@ -25,7 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.gson.Gson
-import com.hereliesaz.magnom.audio.Swipe
+import com.hereliesaz.magnom.data.Swipe
 import com.hereliesaz.magnom.data.BackupManager
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.viewmodels.CreateCardProfileViewModel

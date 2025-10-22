@@ -1,80 +1,121 @@
 package com.hereliesaz.magnom.viewmodels
 
+import android.app.Application
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
-import androidx.lifecycle.ViewModel
-import com.hereliesaz.magnom.data.Device
-import com.hereliesaz.magnom.data.DeviceRepository
+import android.hardware.usb.UsbManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.hereliesaz.magnom.services.ConnectionState
 import com.hereliesaz.magnom.services.UsbCommunicationService
+import com.hereliesaz.magnom.utils.Result
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-data class DeviceScreenUiState(
-    val devices: List<Device> = emptyList(),
-    val expandedDeviceIds: Set<String> = emptySet(),
-    val usbDevices: List<UsbDevice> = emptyList()
+data class DeviceUiState(
+    val usbDevices: List<UsbDevice> = emptyList(),
+    val connectedDevice: UsbDevice? = null,
+    val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
+    val errorMessage: String? = null
 )
 
-class DeviceViewModel : ViewModel() {
+class DeviceViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val deviceRepository = DeviceRepository()
+    private val _uiState = MutableStateFlow(DeviceUiState())
+    val uiState: StateFlow<DeviceUiState> = _uiState.asStateFlow()
+
     private var usbService: UsbCommunicationService? = null
+    private val ACTION_USB_PERMISSION = "com.hereliesaz.magnom.USB_PERMISSION"
 
-    private val _uiState = MutableStateFlow(DeviceScreenUiState())
-    val uiState: StateFlow<DeviceScreenUiState> = _uiState.asStateFlow()
+    private val usbPermissionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (ACTION_USB_PERMISSION == intent.action) {
+                synchronized(this) {
+                    val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+                    if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+                        device?.let { connectToDevice(it) }
+                    } else {
+                        _uiState.update { it.copy(errorMessage = "Permission denied for device") }
+                    }
+                }
+            }
+        }
+    }
 
     init {
-        loadDevices()
+        val filter = IntentFilter(ACTION_USB_PERMISSION)
+        ContextCompat.registerReceiver(
+            getApplication(),
+            usbPermissionReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
-    private fun loadDevices() {
-        _uiState.update { it.copy(devices = deviceRepository.getDevices()) }
-    }
-
-    fun onDeviceClicked(deviceId: String) {
-        _uiState.update { currentState ->
-            val expandedIds = currentState.expandedDeviceIds.toMutableSet()
-            if (expandedIds.contains(deviceId)) {
-                expandedIds.remove(deviceId)
-            } else {
-                expandedIds.add(deviceId)
-            }
-            currentState.copy(expandedDeviceIds = expandedIds)
-        }
-    }
-
-    fun onPinDeviceClicked(device: Device) {
-        val updatedDevices = _uiState.value.devices.toMutableList()
-        val deviceIndex = updatedDevices.indexOf(device)
-        if (deviceIndex != -1) {
-            val updatedDevice = device.copy(isPinned = !device.isPinned)
-            updatedDevices[deviceIndex] = updatedDevice
-            _uiState.update {
-                it.copy(devices = updatedDevices.sortedByDescending { d -> d.isPinned })
-            }
-        }
+    override fun onCleared() {
+        super.onCleared()
+        getApplication<Application>().unregisterReceiver(usbPermissionReceiver)
     }
 
     fun onServiceConnected(service: UsbCommunicationService) {
         usbService = service
         refreshUsbDevices()
-    }
-
-    fun onServiceDisconnected() {
-        usbService = null
-        _uiState.update { it.copy(usbDevices = emptyList()) }
-    }
-
-    fun refreshUsbDevices() {
-        usbService?.let {
-            _uiState.update { currentState ->
-                currentState.copy(usbDevices = it.getAvailableDevices())
+        viewModelScope.launch {
+            usbService?.connectionState?.collect { state ->
+                _uiState.update { it.copy(connectionState = state) }
             }
         }
     }
 
-    fun onEnableDeviceClicked(device: UsbDevice) {
-        usbService?.connect(device)
+    fun onServiceDisconnected() {
+        usbService = null
+    }
+
+    fun refreshUsbDevices() {
+        _uiState.update { it.copy(usbDevices = usbService?.getAvailableDevices() ?: emptyList()) }
+    }
+
+    fun connectToDevice(device: UsbDevice) {
+        val permissionIntent = PendingIntent.getBroadcast(
+            getApplication(),
+            0,
+            Intent(ACTION_USB_PERMISSION),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        when (val result = usbService?.connect(device, permissionIntent)) {
+            is Result.Success -> {
+                _uiState.update { it.copy(connectedDevice = device, errorMessage = null) }
+            }
+            is Result.Error -> {
+                if (result.message != "Permission required") {
+                    _uiState.update { it.copy(errorMessage = result.message) }
+                }
+            }
+            null -> {
+                _uiState.update { it.copy(errorMessage = "USB service not available") }
+            }
+        }
+    }
+
+    fun sendSpoofCommands(track1: String, track2: String) {
+        val track1Formatted = track1.replace('&', '^').replace('-', '/')
+        val track2Formatted = track2.replace('ñ', ';').replace('¿', '=')
+
+        if (track1Formatted.isNotEmpty()) {
+            usbService?.sendCommand("T1:$track1Formatted")
+        }
+        if (track2Formatted.isNotEmpty()) {
+            usbService?.sendCommand("T2:$track2Formatted")
+        }
+        usbService?.sendCommand("SPOOF")
     }
 }
