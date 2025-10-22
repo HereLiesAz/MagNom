@@ -1,5 +1,6 @@
 package com.hereliesaz.magnom.services
 
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -7,12 +8,13 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Binder
 import android.os.IBinder
-import com.hereliesaz.magnom.audio.Result
+import com.hereliesaz.magnom.utils.Result
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+
 
 class UsbCommunicationService : Service() {
 
@@ -32,8 +34,14 @@ class UsbCommunicationService : Service() {
         return UsbSerialProber.getDefaultProber().findAllDrivers(manager).map { it.device }
     }
 
-    fun connect(device: UsbDevice): Result<Unit> {
+    fun connect(device: UsbDevice, permissionIntent: PendingIntent): Result<Unit> {
         val manager = getSystemService(Context.USB_SERVICE) as UsbManager
+        if (!manager.hasPermission(device)) {
+            manager.requestPermission(device, permissionIntent)
+            return Result.Error("Permission required")
+        }
+
+        _connectionState.value = ConnectionState.CONNECTING
         val driver = UsbSerialProber.getDefaultProber().probeDevice(device)
         if (driver == null) {
             _connectionState.value = ConnectionState.DISCONNECTED
@@ -58,11 +66,23 @@ class UsbCommunicationService : Service() {
         }
     }
 
-    fun sendCommand(command: String) {
-        serialPort?.write((command + "\n").toByteArray(), 2000)
+    fun sendCommand(command: String): Result<Unit> {
+        return if (serialPort != null && serialPort!!.isOpen) {
+            try {
+                serialPort?.write((command + "\n").toByteArray(), 2000)
+                Result.Success(Unit)
+            } catch (e: Exception) {
+                Result.Error("Failed to send command: ${e.message}")
+            }
+        } else {
+            Result.Error("Device not connected")
+        }
     }
 
     fun disconnect() {
-        serialPort?.close()
+        if (serialPort != null && serialPort!!.isOpen) {
+            serialPort?.close()
+        }
+        _connectionState.value = ConnectionState.DISCONNECTED
     }
 }

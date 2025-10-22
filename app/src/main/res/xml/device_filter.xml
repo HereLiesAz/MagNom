@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        IMPORTANT: Replace XXXX with the actual Vendor ID and Product ID of your Magspoof v4.
+        This file is used by the Android system to identify the device and automatically launch the app.
+        The app will not be able to connect to the device if these values are not correct.
+
+        See docs/Android Magspoof v4 USB Control.md for detailed instructions on how to find these values.
+    -->
+    <usb-device vendor-id="0xXXXX" product-id="0xXXXX" />
+</resources>

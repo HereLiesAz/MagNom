@@ -3,9 +3,9 @@ package com.hereliesaz.magnom.viewmodels
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.hereliesaz.magnom.audio.Swipe
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.data.ImageProcessingRepository
+import com.hereliesaz.magnom.data.Swipe
 
 class CreateCardProfileViewModelFactory(
     private val application: Application,

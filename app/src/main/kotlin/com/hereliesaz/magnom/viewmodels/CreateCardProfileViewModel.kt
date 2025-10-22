@@ -3,7 +3,7 @@ package com.hereliesaz.magnom.viewmodels
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.hereliesaz.magnom.audio.Swipe
+import com.hereliesaz.magnom.data.Swipe
 import com.hereliesaz.magnom.data.CardProfile
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.data.ImageProcessingRepository

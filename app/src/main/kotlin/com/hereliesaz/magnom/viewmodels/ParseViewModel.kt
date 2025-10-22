@@ -13,12 +13,12 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.magnom.audio.AudioParser
-import com.hereliesaz.magnom.audio.Result
-import com.hereliesaz.magnom.audio.Swipe
+import com.hereliesaz.magnom.data.Swipe
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.logic.AudioPlayer
 import com.hereliesaz.magnom.logic.TrackDataGenerator
 import com.hereliesaz.magnom.logic.WaveformDataGenerator
+import com.hereliesaz.magnom.utils.Result
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,7 +61,6 @@ class ParseViewModel(
 ) : ViewModel() {
 
     private var context: Context? = null
-    private var audioParser: AudioParser? = null
     private var audioRecord: AudioRecord? = null
     private var outputFile: File? = null
 
@@ -90,7 +89,6 @@ class ParseViewModel(
     fun onFileSelected(context: Context, uri: Uri) {
         this.context = context
         _uiState.value = _uiState.value.copy(selectedFileUri = uri)
-        audioParser = AudioParser(context, uri, uiState.value.zcrThreshold, uiState.value.windowSize)
         reparse()
     }
 
@@ -100,53 +98,47 @@ class ParseViewModel(
 
     fun createTrimmedWavFile() {
         val currentSwipe = uiState.value.selectedSwipe ?: return
+        val currentUri = uiState.value.selectedFileUri ?: return
         val currentContext = context ?: return
+
         viewModelScope.launch {
-            val outputFile = File(currentContext.cacheDir, "trimmed_swipe.wav")
-            when (val result = audioParser?.createTrimmedWavFile(currentSwipe, outputFile)) {
-                is Result.Success -> {
+            try {
+                currentContext.contentResolver.openInputStream(currentUri)?.use { inputStream ->
+                    val audioData = AudioParser.readWavFile(inputStream)
+                    val trimmedData = audioData.first.sliceArray(currentSwipe.start..currentSwipe.end)
+                    val outputFile = AudioParser.createWavFile(trimmedData, audioData.second)
                     _uiState.value = _uiState.value.copy(
-                        trimmedFilePath = result.data,
+                        trimmedFilePath = outputFile.absolutePath,
                         errorMessage = null
                     )
                 }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        trimmedFilePath = null,
-                        errorMessage = result.message
-                    )
-                }
-                else -> {
-                    _uiState.value = _uiState.value.copy(
-                        trimmedFilePath = null,
-                        errorMessage = "An unknown error occurred"
-                    )
-                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    trimmedFilePath = null,
+                    errorMessage = "Failed to create trimmed file: ${e.message}"
+                )
             }
         }
     }
 
     private fun reparse() {
+        val currentUri = uiState.value.selectedFileUri ?: return
+        val currentContext = context ?: return
         viewModelScope.launch {
-            when (val result = audioParser?.parse()) {
-                is Result.Success -> {
+            try {
+                currentContext.contentResolver.openInputStream(currentUri)?.use { inputStream ->
+                    val audioData = AudioParser.readWavFile(inputStream)
+                    val swipes = AudioParser.findSwipes(audioData.first, _uiState.value.zcrThreshold, _uiState.value.windowSize)
                     _uiState.value = _uiState.value.copy(
-                        swipes = result.data,
+                        swipes = swipes,
                         errorMessage = null
                     )
                 }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        swipes = emptyList(),
-                        errorMessage = result.message
-                    )
-                }
-                else -> {
-                    _uiState.value = _uiState.value.copy(
-                        swipes = emptyList(),
-                        errorMessage = "An unknown error occurred"
-                    )
-                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    swipes = emptyList(),
+                    errorMessage = "Failed to parse audio file: ${e.message}"
+                )
             }
         }
     }

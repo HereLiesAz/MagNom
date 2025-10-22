@@ -50,7 +50,7 @@ fun SwipeSelectionScreen(
         LazyColumn {
             items(uiState.swipes) { swipe ->
                 Text(
-                    text = "Swipe from ${swipe.startTime} to ${swipe.endTime}",
+                    text = "Swipe from ${swipe.start} to ${swipe.end}",
                     modifier = Modifier.clickable { parseViewModel.onSwipeSelected(swipe) }
                 )
             }

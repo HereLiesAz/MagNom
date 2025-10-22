@@ -31,10 +31,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 import java.util.concurrent.ConcurrentLinkedQueue
 
-enum class ConnectionState {
-    DISCONNECTED, CONNECTING, CONNECTED
-}
-
 class BleCommunicationService : Service() {
 
     private val binder = LocalBinder()
@@ -75,6 +71,7 @@ class BleCommunicationService : Service() {
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 when (newState) {
@@ -136,6 +133,7 @@ class BleCommunicationService : Service() {
         startForegroundService()
     }
 
+    @SuppressLint("MissingPermission")
     fun startScan() {
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
         val scanSettings = ScanSettings.Builder()
@@ -145,6 +143,7 @@ class BleCommunicationService : Service() {
         bluetoothAdapter.bluetoothLeScanner.startScan(null, scanSettings, scanCallback)
     }
 
+    @SuppressLint("MissingPermission")
     fun stopScan() {
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
         bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)

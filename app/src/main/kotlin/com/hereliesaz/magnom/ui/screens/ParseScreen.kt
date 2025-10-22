@@ -1,7 +1,6 @@
 package com.hereliesaz.magnom.ui.screens
 
 import android.Manifest
-import android.app.Application
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -39,33 +38,21 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.hereliesaz.magnom.data.BackupManager
-import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
-import com.hereliesaz.magnom.viewmodels.AudioRecordingViewModel
-import com.hereliesaz.magnom.viewmodels.WaveformViewModel
-import com.hereliesaz.magnom.viewmodels.WaveformViewModelFactory
-import java.io.File
+import com.hereliesaz.magnom.viewmodels.ParseViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ParseScreen(
     navController: NavController,
     cardId: String?,
-    audioFileViewModel: AudioFileViewModel,
+    parseViewModel: ParseViewModel,
 ) {
+    val uiState by parseViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
     if (cardId != null) {
-        val context = LocalContext.current
-        val waveformViewModel: WaveformViewModel = viewModel(
-            factory = WaveformViewModelFactory(
-                CardRepository(context.applicationContext as Application, BackupManager(context.applicationContext as Application)),
-                cardId
-            )
-        )
-        val uiState by waveformViewModel.uiState.collectAsState()
         val textMeasurer = rememberTextMeasurer()
 
         Column(
@@ -73,7 +60,7 @@ fun ParseScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.End
         ) {
-            IconButton(onClick = { waveformViewModel.togglePlayback() }) {
+            IconButton(onClick = { parseViewModel.togglePlayback() }) {
                 Text(if (uiState.isPlaying) "Stop" else "Play")
             }
 
@@ -82,10 +69,10 @@ fun ParseScreen(
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         detectTransformGestures { _, pan, zoom, _ ->
-                            waveformViewModel.onZoom(zoom)
+                            parseViewModel.onZoom(zoom)
                             val maxPan = (size.width * uiState.zoom) - size.width
                             val newPan = (uiState.panOffset + pan.x).coerceIn(0f, maxPan)
-                            waveformViewModel.setPan(newPan)
+                            parseViewModel.setPan(newPan)
                         }
                     }
                 ) {
@@ -119,19 +106,10 @@ fun ParseScreen(
             }
         }
     } else {
-        val context = LocalContext.current
-        val audioRecordingViewModel: AudioRecordingViewModel = viewModel()
-        val selectedFileUri by audioFileViewModel.selectedFileUri.collectAsState()
-        var isRecording by remember { mutableStateOf(false) }
-        val audioData by audioRecordingViewModel.audioData.collectAsState()
-        val errorMessage by audioRecordingViewModel.errorMessage.collectAsState()
-        val savedFilePath by audioRecordingViewModel.savedFilePath.collectAsState()
-        val availableDevices by audioRecordingViewModel.availableDevices.collectAsState()
-        val selectedDevice by audioRecordingViewModel.selectedDevice.collectAsState()
         var expanded by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
-            audioRecordingViewModel.getAvailableRecordingDevices(context)
+            parseViewModel.getAvailableRecordingDevices(context)
         }
 
         val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -153,7 +131,7 @@ fun ParseScreen(
             contract = ActivityResultContracts.GetContent(),
             onResult = { uri: Uri? ->
                 uri?.let {
-                    audioFileViewModel.onFileSelected(context, it)
+                    parseViewModel.onFileSelected(context, it)
                     navController.navigate(Screen.SwipeSelection.route)
                 }
             }
@@ -179,11 +157,11 @@ fun ParseScreen(
             }) {
                 Text("Select Audio File")
             }
-            selectedFileUri?.let {
+            uiState.selectedFileUri?.let {
                 Text("Selected file: ${it.path}")
             }
 
-            errorMessage?.let {
+            uiState.errorMessage?.let {
                 Text(text = it)
             }
             Canvas(
@@ -194,13 +172,14 @@ fun ParseScreen(
                 val width = size.width
                 val height = size.height
                 val centerY = height / 2
-                val step = width / audioData.size
+                val step = if (uiState.audioData.isNotEmpty()) width / uiState.audioData.size else 0f
 
-                for (i in 0 until audioData.size - 1) {
+
+                for (i in 0 until uiState.audioData.size - 1) {
                     val x1 = i * step
-                    val y1 = centerY + audioData[i] / 32768f * centerY
+                    val y1 = centerY + uiState.audioData[i] / 32768f * centerY
                     val x2 = (i + 1) * step
-                    val y2 = centerY + audioData[i + 1] / 32768f * centerY
+                    val y2 = centerY + uiState.audioData[i + 1] / 32768f * centerY
                     drawLine(
                         color = Color.Red,
                         start = Offset(x1, y1),
@@ -216,7 +195,7 @@ fun ParseScreen(
                 }
             ) {
                 TextField(
-                    value = selectedDevice?.productName?.toString() ?: "Select a device",
+                    value = uiState.selectedDevice?.productName?.toString() ?: "Select a device",
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = {
@@ -232,11 +211,11 @@ fun ParseScreen(
                         expanded = false
                     }
                 ) {
-                    availableDevices.forEach { device ->
+                    uiState.availableDevices.forEach { device ->
                         DropdownMenuItem(
                             text = { Text(device.productName.toString()) },
                             onClick = {
-                                audioRecordingViewModel.onDeviceSelected(device)
+                                parseViewModel.onDeviceSelected(device)
                                 expanded = false
                             }
                         )
@@ -249,24 +228,23 @@ fun ParseScreen(
                     Manifest.permission.RECORD_AUDIO
                 )) {
                     PackageManager.PERMISSION_GRANTED -> {
-                        if (isRecording) {
-                            audioRecordingViewModel.stopRecording()
+                        if (uiState.isRecording) {
+                            parseViewModel.stopRecording()
                         } else {
-                            audioRecordingViewModel.startRecording(context, selectedDevice)
+                            parseViewModel.startRecording(context, uiState.selectedDevice)
                         }
-                        isRecording = !isRecording
                     }
                     else -> {
                         requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     }
                 }
             }) {
-                Text(if (isRecording) "Stop Recording" else "Start Recording")
+                Text(if (uiState.isRecording) "Stop Recording" else "Start Recording")
             }
-            savedFilePath?.let {
+            uiState.savedFilePath?.let {
                 Text("Recording saved to: $it")
                 Button(onClick = {
-                    audioFileViewModel.onFileSelected(context, Uri.fromFile(File(it)))
+                    parseViewModel.onFileSelected(context, Uri.fromFile(java.io.File(it)))
                     navController.navigate(Screen.SwipeSelection.route)
                 }) {
                     Text("Parse Recording")

@@ -1,19 +1,17 @@
 package com.hereliesaz.magnom.audio
 
+import com.hereliesaz.magnom.data.Swipe
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-data class Swipe(val start: Int, val end: Int)
-
 object AudioParser {
 
-    fun readWavFile(file: File): Pair<ShortArray, Int> {
-        val fis = FileInputStream(file)
+    fun readWavFile(inputStream: InputStream): Pair<ShortArray, Int> {
         val buffer = ByteArray(44)
-        fis.read(buffer)
+        inputStream.read(buffer)
 
         val byteBuffer = ByteBuffer.wrap(buffer).order(ByteOrder.LITTLE_ENDIAN)
         val sampleRate = byteBuffer.getInt(24)
@@ -22,14 +20,14 @@ object AudioParser {
         val audioBuffer = ByteArray(1024)
         var bytesRead: Int
 
-        while (fis.read(audioBuffer).also { bytesRead = it } != -1) {
+        while (inputStream.read(audioBuffer).also { bytesRead = it } != -1) {
             val shortBuffer = ByteBuffer.wrap(audioBuffer, 0, bytesRead).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
             val shortArray = ShortArray(shortBuffer.remaining())
             shortBuffer.get(shortArray)
             audioData.addAll(shortArray.toList())
         }
 
-        fis.close()
+        inputStream.close()
         return Pair(audioData.toShortArray(), sampleRate)
     }
 

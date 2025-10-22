@@ -58,10 +58,6 @@ class TransmissionInterfaceViewModel(
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as UsbCommunicationService.UsbBinder
             usbService = binder.getService()
-            val devices = usbService?.getAvailableDevices()
-            if (devices?.isNotEmpty() == true) {
-                usbService?.connect(devices[0])
-            }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -88,9 +84,9 @@ class TransmissionInterfaceViewModel(
 
             val activeDevice = deviceRepository.getDevices().firstOrNull { it.isPinned }
             if (activeDevice?.type == DeviceType.USB_SERIAL) {
-                usbService?.sendCommand("SET_TRACK1:$track1")
-                usbService?.sendCommand("SET_TRACK2:$track2")
-                usbService?.sendCommand("EMULATE")
+                usbService?.sendCommand("T1:$track1")
+                usbService?.sendCommand("T2:$track2")
+                usbService?.sendCommand("SPOOF")
                 _transmissionStatus.value = "Transmission successful!"
             } else {
                 bleService?.writeTrackData(track1, track2)

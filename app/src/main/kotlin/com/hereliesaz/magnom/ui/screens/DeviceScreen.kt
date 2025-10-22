@@ -19,8 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
-import com.hereliesaz.magnom.data.Device
+import com.hereliesaz.magnom.services.ConnectionState
 import com.hereliesaz.magnom.services.UsbCommunicationService
 import com.hereliesaz.magnom.viewmodels.DeviceViewModel
 
@@ -51,12 +50,18 @@ fun DeviceScreen(deviceViewModel: DeviceViewModel = viewModel()) {
         }
     }
 
-    if (uiState.devices.isEmpty() && uiState.usbDevices.isEmpty()) {
+    if (uiState.usbDevices.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text("No devices found.")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("No USB devices found.")
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { deviceViewModel.refreshUsbDevices() }) {
+                    Text("Refresh USB Devices")
+                }
+            }
         }
     } else {
         LazyColumn(
@@ -68,21 +73,12 @@ fun DeviceScreen(deviceViewModel: DeviceViewModel = viewModel()) {
                     Text("Refresh USB Devices")
                 }
             }
-            items(uiState.devices) { device ->
-                DeviceListItem(
-                    device = device,
-                    isExpanded = uiState.expandedDeviceIds.contains(device.id),
-                    onDeviceClicked = { deviceViewModel.onDeviceClicked(device.id) },
-                    onPinDeviceClicked = { deviceViewModel.onPinDeviceClicked(device) },
-                    onEnableDeviceClicked = {
-                        // This is handled by the UsbDeviceListItem
-                    }
-                )
-            }
             items(uiState.usbDevices) { device ->
                 UsbDeviceListItem(
                     device = device,
-                    onConnectClicked = { deviceViewModel.onEnableDeviceClicked(device) }
+                    connectionState = if (uiState.connectedDevice?.deviceId == device.deviceId) uiState.connectionState else ConnectionState.DISCONNECTED,
+                    onConnectClicked = { deviceViewModel.connectToDevice(device) },
+                    onSendCommand = { track1, track2 -> deviceViewModel.sendSpoofCommands(track1, track2) }
                 )
             }
         }
@@ -92,71 +88,49 @@ fun DeviceScreen(deviceViewModel: DeviceViewModel = viewModel()) {
 @Composable
 fun UsbDeviceListItem(
     device: UsbDevice,
-    onConnectClicked: () -> Unit
+    connectionState: ConnectionState,
+    onConnectClicked: () -> Unit,
+    onSendCommand: (String, String) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = device.deviceName)
-            Button(onClick = onConnectClicked) {
-                Text("Connect")
-            }
-        }
-    }
-}
+    var track1 by remember { mutableStateOf("") }
+    var track2 by remember { mutableStateOf("") }
 
-@Composable
-fun DeviceListItem(
-    device: Device,
-    isExpanded: Boolean,
-    onDeviceClicked: () -> Unit,
-    onPinDeviceClicked: () -> Unit,
-    onEnableDeviceClicked: () -> Unit
-) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .clickable(onClick = onDeviceClicked),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = device.name, style = MaterialTheme.typography.titleLarge)
-            AnimatedVisibility(visible = isExpanded) {
-                Column {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AsyncImage(
-                        model = device.imageUrl,
-                        contentDescription = device.name,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = device.description, style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    device.links.forEach { (title, url) ->
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            modifier = Modifier.clickable { /* Handle link click */ }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Button(onClick = onPinDeviceClicked) {
-                            Text(if (device.isPinned) "Unpin" else "Pin")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(onClick = onEnableDeviceClicked) {
-                            Text("Enable Device")
-                        }
-                    }
+            Text(text = device.deviceName, style = MaterialTheme.typography.titleLarge)
+            Text(text = "Vendor ID: ${device.vendorId}, Product ID: ${device.productId}")
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Status: $connectionState")
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (connectionState == ConnectionState.CONNECTED) {
+                OutlinedTextField(
+                    value = track1,
+                    onValueChange = { track1 = it },
+                    label = { Text("Track 1 Data") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = track2,
+                    onValueChange = { track2 = it },
+                    label = { Text("Track 2 Data") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { onSendCommand(track1, track2) },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Send and Spoof")
+                }
+            } else {
+                Button(onClick = onConnectClicked) {
+                    Text(if (connectionState == ConnectionState.CONNECTING) "Connecting..." else "Connect")
                 }
             }
         }
