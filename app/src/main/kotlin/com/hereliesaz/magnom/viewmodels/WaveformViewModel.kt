@@ -3,6 +3,8 @@ package com.hereliesaz.magnom.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.magnom.data.CardRepository
+import com.hereliesaz.magnom.logic.TrackDataGenerator
+import com.hereliesaz.magnom.logic.WaveformDataGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +22,8 @@ class WaveformViewModel(private val cardRepository: CardRepository, private val 
 
     private val _uiState = MutableStateFlow(WaveformUiState())
     val uiState: StateFlow<WaveformUiState> = _uiState.asStateFlow()
+    private val trackDataGenerator = TrackDataGenerator()
+    private val waveformDataGenerator = WaveformDataGenerator()
 
     init {
         loadWaveformData()
@@ -27,11 +31,13 @@ class WaveformViewModel(private val cardRepository: CardRepository, private val 
 
     private fun loadWaveformData() {
         viewModelScope.launch {
-            val card = cardRepository.getCardById(cardId)
-            val track2 = card?.track2
-            if (track2 != null) {
-                // This is a placeholder for the actual waveform data
-                _uiState.value = _uiState.value.copy(waveformData = List(100) { (it % 2).toFloat() }, trackData = track2)
+            val card = cardRepository.getCardProfile(cardId)
+            if (card != null) {
+                val track2 = trackDataGenerator.generateTrack2(card.pan, card.expirationDate, card.serviceCode)
+                _uiState.value = _uiState.value.copy(
+                    waveformData = waveformDataGenerator.generate(track2).toList(),
+                    trackData = track2
+                )
             }
         }
     }

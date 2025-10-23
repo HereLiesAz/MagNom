@@ -5,88 +5,89 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.magnom.audio.AudioParser
-import com.hereliesaz.magnom.audio.Swipe
+import com.hereliesaz.magnom.data.Swipe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
+data class AudioFileUiState(
+    val selectedFileUri: Uri? = null,
+    val swipes: List<Swipe> = emptyList(),
+    val selectedSwipe: Swipe? = null,
+    val errorMessage: String? = null,
+    val zcrThreshold: Double = 0.1,
+    val windowSize: Int = 1024,
+    val trimmedFilePath: String? = null
+)
+
 class AudioFileViewModel : ViewModel() {
 
-    private val _selectedFileUri = MutableStateFlow<Uri?>(null)
-    val selectedFileUri: StateFlow<Uri?> = _selectedFileUri.asStateFlow()
+    private val _uiState = MutableStateFlow(AudioFileUiState())
+    val uiState: StateFlow<AudioFileUiState> = _uiState
 
-    private val _swipes = MutableStateFlow<List<Swipe>>(emptyList())
-    val swipes: StateFlow<List<Swipe>> = _swipes.asStateFlow()
-
-    private val _selectedSwipe = MutableStateFlow<Swipe?>(null)
-    val selectedSwipe: StateFlow<Swipe?> = _selectedSwipe.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
-
-    private val _zcrThreshold = MutableStateFlow(0.1)
-    val zcrThreshold: StateFlow<Double> = _zcrThreshold.asStateFlow()
-
-    private val _windowSize = MutableStateFlow(1024)
-    val windowSize: StateFlow<Int> = _windowSize.asStateFlow()
-
-    private val _trimmedFilePath = MutableStateFlow<String?>(null)
-    val trimmedFilePath: StateFlow<String?> = _trimmedFilePath.asStateFlow()
-
-    private var audioData: ShortArray? = null
+    private var _selectedFileUri = MutableStateFlow<Uri?>(null)
+    val selectedFileUri: StateFlow<Uri?> = _selectedFileUri
 
     fun onFileSelected(context: Context, uri: Uri) {
         _selectedFileUri.value = uri
         viewModelScope.launch {
             try {
-                val inputStream = context.contentResolver.openInputStream(uri)!!
-                val tempFile = File.createTempFile("audio", ".wav", context.cacheDir)
-                tempFile.outputStream().use { outputStream ->
-                    inputStream.use { it.copyTo(outputStream) }
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val audioData = AudioParser.readWavFile(inputStream)
+                    val swipes = AudioParser.findSwipes(
+                        audioData.first,
+                        _uiState.value.zcrThreshold,
+                        _uiState.value.windowSize
+                    )
+                    _uiState.value = _uiState.value.copy(
+                        swipes = swipes,
+                        errorMessage = null
+                    )
                 }
-                val (data, _) = AudioParser.readWavFile(tempFile)
-                audioData = data
-                findSwipes()
             } catch (e: Exception) {
-                _errorMessage.value = "Error parsing WAV file: ${e.message}"
+                _uiState.value = _uiState.value.copy(
+                    swipes = emptyList(),
+                    errorMessage = "Failed to parse audio file: ${e.message}"
+                )
             }
         }
     }
 
     fun onZcrThresholdChange(threshold: Double) {
-        _zcrThreshold.value = threshold
-        findSwipes()
+        _uiState.value = _uiState.value.copy(zcrThreshold = threshold)
+        // Note: You might want to re-parse the audio file here
     }
 
     fun onWindowSizeChange(size: Int) {
-        _windowSize.value = size
-        findSwipes()
-    }
-
-    private fun findSwipes() {
-        audioData?.let {
-            _swipes.value = AudioParser.findSwipes(it, _zcrThreshold.value, _windowSize.value)
-        }
+        _uiState.value = _uiState.value.copy(windowSize = size)
+        // Note: You might want to re-parse the audio file here
     }
 
     fun onSwipeSelected(swipe: Swipe) {
-        _selectedSwipe.value = swipe
+        _uiState.value = _uiState.value.copy(selectedSwipe = swipe)
     }
 
-    fun createTrimmedWavFile() {
+    fun createTrimmedWavFile(context: Context) {
+        val currentSwipe = _uiState.value.selectedSwipe ?: return
+        val currentUri = _selectedFileUri.value ?: return
+
         viewModelScope.launch {
-            val swipe = _selectedSwipe.value
-            val data = audioData
-            if (swipe != null && data != null) {
-                val trimmedData = data.sliceArray(swipe.start..swipe.end)
-                try {
-                    val file = AudioParser.createWavFile(trimmedData, 44100)
-                    _trimmedFilePath.value = file.absolutePath
-                } catch (e: Exception) {
-                    _errorMessage.value = "Error creating trimmed WAV file: ${e.message}"
+            try {
+                context.contentResolver.openInputStream(currentUri)?.use { inputStream ->
+                    val audioData = AudioParser.readWavFile(inputStream)
+                    val trimmedData = audioData.first.sliceArray(currentSwipe.start..currentSwipe.end)
+                    val outputFile = AudioParser.createWavFile(trimmedData, audioData.second)
+                    _uiState.value = _uiState.value.copy(
+                        trimmedFilePath = outputFile.absolutePath,
+                        errorMessage = null
+                    )
                 }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    trimmedFilePath = null,
+                    errorMessage = "Failed to create trimmed file: ${e.message}"
+                )
             }
         }
     }

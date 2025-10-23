@@ -8,8 +8,7 @@ import com.google.gson.Gson
 @Suppress("DEPRECATION")
 class CardRepository(
     context: Context,
-    private val backupManager: BackupManager? = null,
-    private val analyticsRepository: AnalyticsRepository? = null
+    private val backupManager: BackupManager? = null
 ) {
 
     private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
@@ -33,7 +32,6 @@ class CardRepository(
         val json = gson.toJson(profile)
         sharedPreferences.edit().putString(profile.id, json).apply()
         onDataChanged()
-        analyticsRepository?.anonymizeAndSendData(profile)
     }
 
     fun getCardProfile(id: String): CardProfile? {

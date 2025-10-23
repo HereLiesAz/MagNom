@@ -75,6 +75,7 @@ class BleCommunicationService : Service() {
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 when (newState) {
@@ -83,7 +84,9 @@ class BleCommunicationService : Service() {
                         bluetoothGatt = gatt
                         writeQueue.clear()
                         isWriting = false
-                        bluetoothGatt?.discoverServices()
+                        if (hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+                            bluetoothGatt?.discoverServices()
+                        }
                     }
                     BluetoothProfile.STATE_DISCONNECTED -> {
                         _connectionState.value = ConnectionState.DISCONNECTED
@@ -136,6 +139,7 @@ class BleCommunicationService : Service() {
         startForegroundService()
     }
 
+    @SuppressLint("MissingPermission")
     fun startScan() {
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
         val scanSettings = ScanSettings.Builder()
@@ -145,6 +149,7 @@ class BleCommunicationService : Service() {
         bluetoothAdapter.bluetoothLeScanner.startScan(null, scanSettings, scanCallback)
     }
 
+    @SuppressLint("MissingPermission")
     fun stopScan() {
         if (!hasPermission(Manifest.permission.BLUETOOTH_SCAN)) return
         bluetoothAdapter.bluetoothLeScanner.stopScan(scanCallback)

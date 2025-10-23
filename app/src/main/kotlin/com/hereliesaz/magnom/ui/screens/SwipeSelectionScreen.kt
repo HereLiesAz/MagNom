@@ -14,18 +14,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.viewmodels.ParseViewModel
+import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
 
 @Composable
 fun SwipeSelectionScreen(
     navController: NavController,
-    parseViewModel: ParseViewModel = viewModel()
+    audioFileViewModel: AudioFileViewModel = viewModel()
 ) {
-    val uiState by parseViewModel.uiState.collectAsState()
+    val uiState by audioFileViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -38,20 +40,20 @@ fun SwipeSelectionScreen(
         Text(text = "ZCR Threshold: ${uiState.zcrThreshold}")
         Slider(
             value = uiState.zcrThreshold.toFloat(),
-            onValueChange = { parseViewModel.onZcrThresholdChange(it.toDouble()) },
+            onValueChange = { audioFileViewModel.onZcrThresholdChange(it.toDouble()) },
             valueRange = 0f..1f
         )
         Text(text = "Window Size: ${uiState.windowSize}")
         Slider(
             value = uiState.windowSize.toFloat(),
-            onValueChange = { parseViewModel.onWindowSizeChange(it.toInt()) },
+            onValueChange = { audioFileViewModel.onWindowSizeChange(it.toInt()) },
             valueRange = 256f..4096f
         )
         LazyColumn {
             items(uiState.swipes) { swipe ->
                 Text(
-                    text = "Swipe from ${swipe.startTime} to ${swipe.endTime}",
-                    modifier = Modifier.clickable { parseViewModel.onSwipeSelected(swipe) }
+                    text = "Swipe from ${swipe.start} to ${swipe.end}",
+                    modifier = Modifier.clickable { audioFileViewModel.onSwipeSelected(swipe) }
                 )
             }
         }
@@ -68,7 +70,7 @@ fun SwipeSelectionScreen(
         }
         Button(
             onClick = {
-                parseViewModel.createTrimmedWavFile()
+                audioFileViewModel.createTrimmedWavFile(context)
             },
             enabled = uiState.selectedSwipe != null
         ) {

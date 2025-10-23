@@ -4,8 +4,11 @@ import android.content.Context
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioRecord
+import android.Manifest
+import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.MediaRecorder
+import androidx.core.content.ContextCompat
 import java.io.File
 
 class AudioRecorder(
@@ -18,6 +21,13 @@ class AudioRecorder(
     private val bufferSize = AudioRecord.getMinBufferSize(44100, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
 
     fun startRecording() {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
         val audioSource = MediaRecorder.AudioSource.MIC
 
         audioRecord = AudioRecord.Builder()

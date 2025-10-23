@@ -1,6 +1,11 @@
 package com.hereliesaz.magnom
 
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +20,7 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -23,29 +29,24 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.hereliesaz.aznavrail.AzNavRail
 import com.hereliesaz.aznavrail.model.AzButtonShape
-import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.ui.screens.CardEditorScreen
-import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
-import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
-import com.hereliesaz.magnom.ui.screens.BruteforceScreen
-import com.hereliesaz.magnom.ui.screens.HelpScreen
 import com.hereliesaz.magnom.data.DeviceRepository
+import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.services.UsbCommunicationService
+import com.hereliesaz.magnom.ui.screens.BruteforceScreen
+import com.hereliesaz.magnom.ui.screens.CardEditorScreen
+import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
+import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
 import com.hereliesaz.magnom.ui.screens.DeviceScreen
+import com.hereliesaz.magnom.ui.screens.HelpScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
 import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
 import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
-import android.os.IBinder
-import androidx.compose.runtime.remember
 
 class MainActivity : ComponentActivity() {
+
     private lateinit var usbCommunicationService: UsbCommunicationService
     private var isUsbServiceBound = false
 
@@ -78,7 +79,7 @@ class MainActivity : ComponentActivity() {
 
                         Row(modifier = Modifier.weight(1f)) {
                             AzNavRail {
-                                azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles" ) {
+                                azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles") {
                                     navController.navigate(Screen.Main.route)
                                 }
                                 azRailItem(id = "parse", text = "Parse") {
@@ -87,7 +88,11 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "editor", text = "Editor") {
                                     navController.navigate("editor/null")
                                 }
-                                azRailItem(id = "magspoof_replay", text = "Replay", shape = AzButtonShape.NONE ) {
+                                azRailItem(
+                                    id = "magspoof_replay",
+                                    text = "Replay",
+                                    shape = AzButtonShape.NONE
+                                ) {
                                     navController.navigate(Screen.MagspoofReplay.route)
                                 }
                                 azRailItem(id = "advanced_editor", text = "Advanced") {
@@ -103,13 +108,17 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.Settings.route)
                                 }
                                 azMenuItem(id = "help", text = "Help") {
-                                    val currentRoute = navController.currentBackStackEntry?.destination?.route
+                                    val currentRoute =
+                                        navController.currentBackStackEntry?.destination?.route
                                     if (currentRoute != null) {
                                         navController.navigate(Screen.Help.createRoute(currentRoute))
                                     }
                                 }
                             }
-                            NavHost(navController = navController, startDestination = Screen.Main.route) {
+                            NavHost(
+                                navController = navController,
+                                startDestination = Screen.Main.route
+                            ) {
                                 composable(Screen.Main.route) {
                                     MainScreen(navController = navController)
                                 }
@@ -118,10 +127,17 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("parse/{cardId}") { backStackEntry ->
                                     val cardId = backStackEntry.arguments?.getString("cardId")
-                                    ParseScreen(navController = navController, cardId = if(cardId == "null") null else cardId, audioFileViewModel = audioFileViewModel)
+                                    ParseScreen(
+                                        navController = navController,
+                                        cardId = if (cardId == "null") null else cardId,
+                                        audioFileViewModel = audioFileViewModel
+                                    )
                                 }
                                 composable(Screen.SwipeSelection.route) {
-                                    SwipeSelectionScreen(navController = navController, audioFileViewModel = audioFileViewModel)
+                                    SwipeSelectionScreen(
+                                        navController = navController,
+                                        audioFileViewModel = audioFileViewModel
+                                    )
                                 }
                                 composable(Screen.CreateCardProfile.route) { backStackEntry ->
                                     val swipeData = backStackEntry.arguments?.getString("swipeData")
@@ -131,7 +147,10 @@ class MainActivity : ComponentActivity() {
                                 }
                                 composable("editor/{cardId}") { backStackEntry ->
                                     val cardId = backStackEntry.arguments?.getString("cardId")
-                                    CardEditorScreen(navController = navController, cardId = if(cardId == "null") null else cardId)
+                                    CardEditorScreen(
+                                        navController = navController,
+                                        cardId = if (cardId == "null") null else cardId
+                                    )
                                 }
                                 composable("help/{route}") { backStackEntry ->
                                     val route = backStackEntry.arguments?.getString("route")
