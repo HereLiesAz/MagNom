@@ -17,16 +17,35 @@ import kotlinx.coroutines.launch
 
 @SuppressLint("MissingPermission")
 class MagspoofReplayViewModel(
-    private val bleCommunicationService: BleCommunicationService,
     private val cardRepository: CardRepository
 ) : ViewModel() {
 
-    val discoveredDevices: StateFlow<List<ScanResult>> = bleCommunicationService.discoveredDevices
-    val connectionState: StateFlow<ConnectionState> = bleCommunicationService.connectionState
-    val transmissionStatus: StateFlow<String> = bleCommunicationService.transmissionStatus
+    private var bleCommunicationService: BleCommunicationService? = null
+
+    private val _discoveredDevices = MutableStateFlow<List<ScanResult>>(emptyList())
+    val discoveredDevices: StateFlow<List<ScanResult>> = _discoveredDevices.asStateFlow()
+
+    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
+    private val _transmissionStatus = MutableStateFlow("")
+    val transmissionStatus: StateFlow<String> = _transmissionStatus.asStateFlow()
 
     private val _selectedCard = MutableStateFlow<CardProfile?>(null)
     val selectedCard: StateFlow<CardProfile?> = _selectedCard.asStateFlow()
+
+    fun setBleCommunicationService(service: BleCommunicationService) {
+        bleCommunicationService = service
+        viewModelScope.launch {
+            service.discoveredDevices.collect { _discoveredDevices.value = it }
+        }
+        viewModelScope.launch {
+            service.connectionState.collect { _connectionState.value = it }
+        }
+        viewModelScope.launch {
+            service.transmissionStatus.collect { _transmissionStatus.value = it }
+        }
+    }
 
     fun setSelectedCard(cardId: String?) {
         viewModelScope.launch {
@@ -38,49 +57,48 @@ class MagspoofReplayViewModel(
 
     fun startScan() {
         viewModelScope.launch {
-            bleCommunicationService.startScan()
+            bleCommunicationService?.startScan()
         }
     }
 
     fun stopScan() {
         viewModelScope.launch {
-            bleCommunicationService.stopScan()
+            bleCommunicationService?.stopScan()
         }
     }
 
     fun connect(device: BluetoothDevice) {
         viewModelScope.launch {
-            bleCommunicationService.connect(device)
+            bleCommunicationService?.connect(device)
         }
     }
 
     fun disconnect() {
         viewModelScope.launch {
-            bleCommunicationService.disconnect()
+            bleCommunicationService?.disconnect()
         }
     }
 
     fun writeTrackData(track1: String, track2: String) {
         viewModelScope.launch {
-            bleCommunicationService.writeTrackData(track1, track2)
+            bleCommunicationService?.writeTrackData(track1, track2)
         }
     }
 
     fun sendTransmitCommand() {
         viewModelScope.launch {
-            bleCommunicationService.sendTransmitCommand()
+            bleCommunicationService?.sendTransmitCommand()
         }
     }
 }
 
 class MagspoofReplayViewModelFactory(
-    private val bleCommunicationService: BleCommunicationService,
     private val cardRepository: CardRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MagspoofReplayViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return MagspoofReplayViewModel(bleCommunicationService, cardRepository) as T
+            return MagspoofReplayViewModel(cardRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

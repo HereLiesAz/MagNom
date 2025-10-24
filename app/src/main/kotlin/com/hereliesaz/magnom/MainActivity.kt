@@ -48,25 +48,11 @@ import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
 import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 import com.hereliesaz.magnom.viewmodels.ParseViewModel
-import com.hereliesaz.magnom.services.BleCommunicationService
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var usbCommunicationService: UsbCommunicationService
     private var isUsbServiceBound = false
-    private lateinit var bleCommunicationService: BleCommunicationService
-    private var isBleServiceBound = false
-
-    private val bleServiceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            bleCommunicationService = (service as BleCommunicationService.LocalBinder).getService()
-            isBleServiceBound = true
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            isBleServiceBound = false
-        }
-    }
 
     private val usbServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -198,20 +184,10 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 composable(Screen.Settings.route) {
-                                    if (isBleServiceBound) {
-                                        SettingsScreen(
-                                            navController = navController,
-                                            bleCommunicationService = bleCommunicationService
-                                        )
-                                    }
+                                    SettingsScreen(navController = navController)
                                 }
                                 composable(Screen.MagspoofReplay.route) {
-                                    if (isBleServiceBound) {
-                                        MagspoofReplayScreen(
-                                            navController = navController,
-                                            bleCommunicationService = bleCommunicationService
-                                        )
-                                    }
+                                    MagspoofReplayScreen(navController = navController)
                                 }
                                 composable("transmission/{cardId}") { backStackEntry ->
                                     val cardId = backStackEntry.arguments?.getString("cardId")
@@ -239,9 +215,6 @@ class MainActivity : ComponentActivity() {
         Intent(this, UsbCommunicationService::class.java).also { intent ->
             bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
         }
-        Intent(this, BleCommunicationService::class.java).also { intent ->
-            bindService(intent, bleServiceConnection, Context.BIND_AUTO_CREATE)
-        }
     }
 
     override fun onStop() {
@@ -249,10 +222,6 @@ class MainActivity : ComponentActivity() {
         if (isUsbServiceBound) {
             unbindService(usbServiceConnection)
             isUsbServiceBound = false
-        }
-        if (isBleServiceBound) {
-            unbindService(bleServiceConnection)
-            isBleServiceBound = false
         }
     }
 }

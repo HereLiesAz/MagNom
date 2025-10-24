@@ -19,18 +19,32 @@ import kotlinx.coroutines.launch
 @SuppressLint("MissingPermission")
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
-    private val bleCommunicationService: BleCommunicationService,
     private val backupManager: BackupManager
 ) : ViewModel() {
 
-    val discoveredDevices: StateFlow<List<ScanResult>> = bleCommunicationService.discoveredDevices
-    val connectionState: StateFlow<ConnectionState> = bleCommunicationService.connectionState
+    private var bleCommunicationService: BleCommunicationService? = null
+
+    private val _discoveredDevices = MutableStateFlow<List<ScanResult>>(emptyList())
+    val discoveredDevices: StateFlow<List<ScanResult>> = _discoveredDevices.asStateFlow()
+
+    private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
     private val _backupPassword = MutableStateFlow("")
     val backupPassword: StateFlow<String> = _backupPassword.asStateFlow()
 
     private val _backupUri = MutableStateFlow<Uri?>(null)
     val backupUri: StateFlow<Uri?> = _backupUri.asStateFlow()
+
+    fun setBleCommunicationService(service: BleCommunicationService) {
+        bleCommunicationService = service
+        viewModelScope.launch {
+            service.discoveredDevices.collect { _discoveredDevices.value = it }
+        }
+        viewModelScope.launch {
+            service.connectionState.collect { _connectionState.value = it }
+        }
+    }
 
     fun setBackupPassword(password: String) {
         _backupPassword.value = password
@@ -42,25 +56,25 @@ class SettingsViewModel(
 
     fun startScan() {
         viewModelScope.launch {
-            bleCommunicationService.startScan()
+            bleCommunicationService?.startScan()
         }
     }
 
     fun stopScan() {
         viewModelScope.launch {
-            bleCommunicationService.stopScan()
+            bleCommunicationService?.stopScan()
         }
     }
 
     fun connect(device: BluetoothDevice) {
         viewModelScope.launch {
-            bleCommunicationService.connect(device)
+            bleCommunicationService?.connect(device)
         }
     }
 
     fun disconnect() {
         viewModelScope.launch {
-            bleCommunicationService.disconnect()
+            bleCommunicationService?.disconnect()
         }
     }
 
@@ -87,13 +101,12 @@ class SettingsViewModel(
 
 class SettingsViewModelFactory(
     private val settingsRepository: SettingsRepository,
-    private val bleCommunicationService: BleCommunicationService,
     private val backupManager: BackupManager
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SettingsViewModel(settingsRepository, bleCommunicationService, backupManager) as T
+            return SettingsViewModel(settingsRepository, backupManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
