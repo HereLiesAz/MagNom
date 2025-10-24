@@ -19,14 +19,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.hereliesaz.magnom.navigation.Screen
-import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
+import com.hereliesaz.magnom.viewmodels.ParseViewModel
 
 @Composable
 fun SwipeSelectionScreen(
     navController: NavController,
-    audioFileViewModel: AudioFileViewModel = viewModel()
+    parseViewModel: ParseViewModel = viewModel()
 ) {
-    val uiState by audioFileViewModel.uiState.collectAsState()
+    val uiState by parseViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     Column(
@@ -40,20 +40,20 @@ fun SwipeSelectionScreen(
         Text(text = "ZCR Threshold: ${uiState.zcrThreshold}")
         Slider(
             value = uiState.zcrThreshold.toFloat(),
-            onValueChange = { audioFileViewModel.onZcrThresholdChange(it.toDouble()) },
+            onValueChange = { parseViewModel.onZcrThresholdChange(it.toDouble()) },
             valueRange = 0f..1f
         )
         Text(text = "Window Size: ${uiState.windowSize}")
         Slider(
             value = uiState.windowSize.toFloat(),
-            onValueChange = { audioFileViewModel.onWindowSizeChange(it.toInt()) },
+            onValueChange = { parseViewModel.onWindowSizeChange(it.toInt()) },
             valueRange = 256f..4096f
         )
         LazyColumn {
             items(uiState.swipes) { swipe ->
                 Text(
                     text = "Swipe from ${swipe.start} to ${swipe.end}",
-                    modifier = Modifier.clickable { audioFileViewModel.onSwipeSelected(swipe) }
+                    modifier = Modifier.clickable { parseViewModel.onSwipeSelected(swipe) }
                 )
             }
         }
@@ -70,7 +70,7 @@ fun SwipeSelectionScreen(
         }
         Button(
             onClick = {
-                audioFileViewModel.createTrimmedWavFile(context)
+                parseViewModel.createTrimmedWavFile(context)
             },
             enabled = uiState.selectedSwipe != null
         ) {

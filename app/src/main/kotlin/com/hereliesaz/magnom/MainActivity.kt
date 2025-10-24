@@ -43,7 +43,7 @@ import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
 import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
-import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
+import com.hereliesaz.magnom.viewmodels.ParseViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    val audioFileViewModel: AudioFileViewModel = viewModel()
+                    val parseViewModel: ParseViewModel = viewModel()
                     val deviceRepository = remember { DeviceRepository() }
 
                     Column(modifier = Modifier.fillMaxSize()) {
@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 azMenuItem(id = "help", text = "Help") {
                                     val currentRoute =
-                                        navController.currentBackStackEntry?.destination?.route
+                                        navController.currentBackStackEntryAsState().value?.destination?.route
                                     if (currentRoute != null) {
                                         navController.navigate(Screen.Help.createRoute(currentRoute))
                                     }
@@ -130,13 +130,13 @@ class MainActivity : ComponentActivity() {
                                     ParseScreen(
                                         navController = navController,
                                         cardId = if (cardId == "null") null else cardId,
-                                        audioFileViewModel = audioFileViewModel
+                                        parseViewModel = parseViewModel
                                     )
                                 }
                                 composable(Screen.SwipeSelection.route) {
                                     SwipeSelectionScreen(
                                         navController = navController,
-                                        audioFileViewModel = audioFileViewModel
+                                        parseViewModel = parseViewModel
                                     )
                                 }
                                 composable(Screen.CreateCardProfile.route) { backStackEntry ->
