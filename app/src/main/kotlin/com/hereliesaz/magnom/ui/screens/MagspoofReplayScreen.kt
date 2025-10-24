@@ -23,12 +23,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.hereliesaz.magnom.data.BackupManager
+import com.hereliesaz.magnom.data.CardRepository
+import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.services.BleCommunicationService
 import com.hereliesaz.magnom.viewmodels.MagspoofReplayViewModel
 import com.hereliesaz.magnom.viewmodels.MagspoofReplayViewModelFactory
+import androidx.compose.runtime.LaunchedEffect
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,12 +42,23 @@ fun MagspoofReplayScreen(
     navController: NavController,
     bleCommunicationService: BleCommunicationService
 ) {
+    val context = LocalContext.current
+    val cardRepository = CardRepository(context, BackupManager(context))
     val viewModel: MagspoofReplayViewModel = viewModel(
-        factory = MagspoofReplayViewModelFactory(bleCommunicationService)
+        factory = MagspoofReplayViewModelFactory(bleCommunicationService, cardRepository)
     )
     val discoveredDevices by viewModel.discoveredDevices.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
     val transmissionStatus by viewModel.transmissionStatus.collectAsState()
+
+    val selectedCardId = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getStateFlow<String?>("selectedCardId", null)
+        ?.collectAsState()
+
+    LaunchedEffect(selectedCardId?.value) {
+        viewModel.setSelectedCard(selectedCardId?.value)
+    }
 
     Scaffold(
         topBar = {
@@ -73,6 +89,7 @@ fun MagspoofReplayScreen(
             }
             Text("Connection State: $connectionState")
             Text("Transmission Status: $transmissionStatus")
+            Text("Selected Card: ${viewModel.selectedCard.collectAsState().value?.name ?: "None"}")
             LazyColumn {
                 items(discoveredDevices) { device ->
                     Text(
@@ -84,7 +101,18 @@ fun MagspoofReplayScreen(
                     )
                 }
             }
-            Button(onClick = { viewModel.sendTransmitCommand() }) {
+            Button(onClick = { navController.navigate(Screen.CardSelection.route) }) {
+                Text("Select Card")
+            }
+            Button(
+                onClick = {
+                    viewModel.selectedCard.value?.let {
+                        viewModel.writeTrackData(it.track1, it.track2)
+                        viewModel.sendTransmitCommand()
+                    }
+                },
+                enabled = viewModel.selectedCard.collectAsState().value != null
+            ) {
                 Text("Transmit")
             }
         }

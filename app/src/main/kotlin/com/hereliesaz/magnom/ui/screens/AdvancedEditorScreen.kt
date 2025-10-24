@@ -62,6 +62,27 @@ fun AdvancedEditorScreen(
                 .padding(16.dp)
         ) {
             OutlinedTextField(
+                value = uiState.name,
+                onValueChange = { viewModel.updateName(it) },
+                label = { Text("Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = uiState.pan,
+                onValueChange = { viewModel.updatePan(it) },
+                label = { Text("PAN") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = uiState.expirationDate,
+                onValueChange = { viewModel.updateExpirationDate(it) },
+                label = { Text("Expiration Date") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
                 value = uiState.track1,
                 onValueChange = { viewModel.updateTrack1(it) },
                 label = { Text("Track 1") },

@@ -38,6 +38,18 @@ class AdvancedEditorViewModel(
         }
     }
 
+    fun updateName(name: String) {
+        _uiState.value = _uiState.value.copy(name = name)
+    }
+
+    fun updatePan(pan: String) {
+        _uiState.value = _uiState.value.copy(pan = pan)
+    }
+
+    fun updateExpirationDate(expirationDate: String) {
+        _uiState.value = _uiState.value.copy(expirationDate = expirationDate)
+    }
+
     fun updateTrack1(track1: String) {
         _uiState.value = _uiState.value.copy(track1 = track1)
     }

@@ -141,7 +141,15 @@ class MainActivity : ComponentActivity() {
                                     MainScreen(navController = navController)
                                 }
                                 composable(Screen.CardSelection.route) {
-                                    CardSelectionScreen(navController = navController)
+                                    CardSelectionScreen(
+                                        navController = navController,
+                                        onCardSelected = { cardId ->
+                                            navController.previousBackStackEntry
+                                                ?.savedStateHandle
+                                                ?.set("selectedCardId", cardId)
+                                            navController.popBackStack()
+                                        }
+                                    )
                                 }
                                 composable("parse/{cardId}") { backStackEntry ->
                                     val cardId = backStackEntry.arguments?.getString("cardId")
