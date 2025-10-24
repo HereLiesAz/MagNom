@@ -21,7 +21,9 @@ class CreateCardProfileViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CreateCardProfileViewModel::class.java)) {
             val settingsRepository = SettingsRepository(application)
-            val cardRepository = CardRepository(application, BackupManager(application))
+            val cardRepository = cardId?.let {
+                CardRepository(application, BackupManager(application))
+            } ?: CardRepository(application, BackupManager(application))
             val imageProcessingRepository = ImageProcessingRepository(application)
             val ktorClient = HttpClient(CIO) {
                 install(ContentNegotiation) {

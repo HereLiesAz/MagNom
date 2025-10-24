@@ -2,20 +2,22 @@ package com.hereliesaz.magnom.data
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
+import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 
-@Suppress("DEPRECATION")
 class CardRepository(
     context: Context,
     private val backupManager: BackupManager? = null
 ) {
 
-    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
     private val sharedPreferences = EncryptedSharedPreferences.create(
-        "secret_shared_prefs",
-        masterKeyAlias,
         context,
+        "secret_shared_prefs",
+        masterKey,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
