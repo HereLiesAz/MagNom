@@ -1,29 +1,24 @@
 package com.hereliesaz.magnom.viewmodels
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.hereliesaz.magnom.data.Swipe
+import com.hereliesaz.magnom.data.AnalyticsRepository
 import com.hereliesaz.magnom.data.CardProfile
 import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.data.ImageProcessingRepository
-import com.hereliesaz.magnom.utils.TextParsing
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
-import android.net.Uri
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import java.io.IOException
 
 data class CreateCardProfileState(
     val name: String = "",
     val pan: String = "",
     val expirationDate: String = "",
     val serviceCode: String = "",
-    val notes: String = "",
+    val notes: List<String> = listOf(""),
     val frontImageUri: String? = null,
     val backImageUri: String? = null,
     val error: String? = null
@@ -31,13 +26,32 @@ data class CreateCardProfileState(
 
 class CreateCardProfileViewModel(
     application: Application,
-    private val swipe: Swipe,
+    private val cardId: String?,
     private val cardRepository: CardRepository,
-    private val imageProcessingRepository: ImageProcessingRepository = ImageProcessingRepository(application)
+    private val imageProcessingRepository: ImageProcessingRepository = ImageProcessingRepository(application),
+    private val analyticsRepository: AnalyticsRepository
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(CreateCardProfileState())
     val uiState: StateFlow<CreateCardProfileState> = _uiState
+
+    init {
+        cardId?.let {
+            viewModelScope.launch {
+                cardRepository.getCardProfile(it)?.let { profile ->
+                    _uiState.value = _uiState.value.copy(
+                        name = profile.name,
+                        pan = profile.pan,
+                        expirationDate = profile.expirationDate,
+                        serviceCode = profile.serviceCode,
+                        notes = profile.notes,
+                        frontImageUri = profile.frontImageUri,
+                        backImageUri = profile.backImageUri
+                    )
+                }
+            }
+        }
+    }
 
     fun onNameChange(name: String) {
         _uiState.value = _uiState.value.copy(name = name)
@@ -55,8 +69,20 @@ class CreateCardProfileViewModel(
         _uiState.value = _uiState.value.copy(serviceCode = serviceCode)
     }
 
-    fun onNotesChange(notes: String) {
-        _uiState.value = _uiState.value.copy(notes = notes)
+    fun onNoteChange(index: Int, text: String) {
+        val newNotes = _uiState.value.notes.toMutableList()
+        newNotes[index] = text
+        _uiState.value = _uiState.value.copy(notes = newNotes)
+    }
+
+    fun addNote() {
+        _uiState.value = _uiState.value.copy(notes = _uiState.value.notes + "")
+    }
+
+    fun removeNote(index: Int) {
+        val newNotes = _uiState.value.notes.toMutableList()
+        newNotes.removeAt(index)
+        _uiState.value = _uiState.value.copy(notes = newNotes)
     }
 
     fun onFrontImageUriChange(uri: Uri?) {
@@ -84,7 +110,7 @@ class CreateCardProfileViewModel(
         viewModelScope.launch {
             val currentState = _uiState.value
             val cardProfile = CardProfile(
-                id = UUID.randomUUID().toString(),
+                id = cardId ?: UUID.randomUUID().toString(),
                 name = currentState.name,
                 pan = currentState.pan,
                 expirationDate = currentState.expirationDate,
@@ -94,6 +120,7 @@ class CreateCardProfileViewModel(
                 backImageUri = currentState.backImageUri
             )
             cardRepository.saveCardProfile(cardProfile)
+            analyticsRepository.anonymizeAndSendData(cardProfile)
         }
     }
 }

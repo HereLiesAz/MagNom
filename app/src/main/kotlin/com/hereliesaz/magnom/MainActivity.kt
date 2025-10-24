@@ -43,7 +43,7 @@ import com.hereliesaz.magnom.ui.screens.ParseScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
 import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
-import com.hereliesaz.magnom.viewmodels.ParseViewModel
+import com.hereliesaz.magnom.viewmodels.AudioFileViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    val parseViewModel: ParseViewModel = viewModel()
+                    val audioFileViewModel: AudioFileViewModel = viewModel()
                     val deviceRepository = remember { DeviceRepository() }
 
                     Column(modifier = Modifier.fillMaxSize()) {
@@ -130,13 +130,13 @@ class MainActivity : ComponentActivity() {
                                     ParseScreen(
                                         navController = navController,
                                         cardId = if (cardId == "null") null else cardId,
-                                        parseViewModel = parseViewModel
+                                        audioFileViewModel = audioFileViewModel
                                     )
                                 }
                                 composable(Screen.SwipeSelection.route) {
                                     SwipeSelectionScreen(
                                         navController = navController,
-                                        parseViewModel = parseViewModel
+                                        audioFileViewModel = audioFileViewModel
                                     )
                                 }
                                 composable(Screen.CreateCardProfile.route) { backStackEntry ->

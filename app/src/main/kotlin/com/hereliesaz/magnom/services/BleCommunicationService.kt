@@ -80,7 +80,9 @@ class BleCommunicationService : Service() {
                         bluetoothGatt = gatt
                         writeQueue.clear()
                         isWriting = false
-                        bluetoothGatt?.discoverServices()
+                        if (hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
+                            bluetoothGatt?.discoverServices()
+                        }
                     }
                     BluetoothProfile.STATE_DISCONNECTED -> {
                         _connectionState.value = ConnectionState.DISCONNECTED

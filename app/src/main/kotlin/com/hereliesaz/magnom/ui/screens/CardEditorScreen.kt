@@ -22,50 +22,41 @@ import coil.compose.AsyncImage
 import androidx.compose.runtime.getValue
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.hereliesaz.magnom.viewmodels.NavigationEvent
 import androidx.navigation.NavController
-import com.hereliesaz.magnom.viewmodels.CardEditorViewModel
-import com.hereliesaz.magnom.viewmodels.CardEditorViewModelFactory
+import com.hereliesaz.magnom.viewmodels.CreateCardProfileViewModel
+import com.hereliesaz.magnom.viewmodels.CreateCardProfileViewModelFactory
 
 @Composable
 fun CardEditorScreen(navController: NavController, cardId: String? = null) {
     val context = LocalContext.current
-    val cardEditorViewModel: CardEditorViewModel = viewModel(
-        factory = CardEditorViewModelFactory(
+    val createCardProfileViewModel: CreateCardProfileViewModel = viewModel(
+        factory = CreateCardProfileViewModelFactory(
             context.applicationContext as Application,
             cardId
         )
     )
-    val uiState by cardEditorViewModel.uiState.collectAsState()
-
-    LaunchedEffect(Unit) {
-        cardEditorViewModel.navigationEvent.collect { event ->
-            when (event) {
-                is NavigationEvent.ToUrl -> {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse(event.url)
-                    }
-                    context.startActivity(intent)
-                }
-            }
-        }
-    }
+    val uiState by createCardProfileViewModel.uiState.collectAsState()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        cardEditorViewModel.onFrontImageUriChange(uri)
+        createCardProfileViewModel.onFrontImageUriChange(uri)
     }
 
     val backLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        cardEditorViewModel.onBackImageUriChange(uri)
+        createCardProfileViewModel.onBackImageUriChange(uri)
     }
 
     Column(
@@ -76,7 +67,7 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextField(
                 value = uiState.name,
-                onValueChange = cardEditorViewModel::onNameChange,
+                onValueChange = createCardProfileViewModel::onNameChange,
                 label = { Text("Name") }
             )
             InfoIcon("Enter the full name of the cardholder.")
@@ -84,37 +75,43 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextField(
                 value = uiState.pan,
-                onValueChange = cardEditorViewModel::onPanChange,
-                label = { Text("PAN") },
-                isError = uiState.error is com.hereliesaz.magnom.viewmodels.CardEditorError.InvalidPan
+                onValueChange = createCardProfileViewModel::onPanChange,
+                label = { Text("PAN") }
             )
             InfoIcon("Enter the Primary Account Number (PAN) of the card.")
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextField(
                 value = uiState.expirationDate,
-                onValueChange = cardEditorViewModel::onExpirationDateChange,
-                label = { Text("Expiration Date (YYMM)") },
-                isError = uiState.error is com.hereliesaz.magnom.viewmodels.CardEditorError.InvalidExpirationDate
+                onValueChange = createCardProfileViewModel::onExpirationDateChange,
+                label = { Text("Expiration Date (YYMM)") }
             )
             InfoIcon("Enter the expiration date in YYMM format.")
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextField(
                 value = uiState.serviceCode,
-                onValueChange = cardEditorViewModel::onServiceCodeChange,
-                label = { Text("Service Code") },
-                isError = uiState.error is com.hereliesaz.magnom.viewmodels.CardEditorError.InvalidServiceCode
+                onValueChange = createCardProfileViewModel::onServiceCodeChange,
+                label = { Text("Service Code") }
             )
             InfoIcon("Enter the service code of the card.")
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextField(
-                value = uiState.notes,
-                onValueChange = cardEditorViewModel::onNotesChange,
-                label = { Text("Notes") }
-            )
-            InfoIcon("Enter any notes for this card.")
+
+        uiState.notes.forEachIndexed { index, note ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextField(
+                    value = note,
+                    onValueChange = { createCardProfileViewModel.onNoteChange(index, it) },
+                    label = { Text("Note ${index + 1}") }
+                )
+                IconButton(onClick = { createCardProfileViewModel.removeNote(index) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove Note")
+                }
+            }
+        }
+
+        IconButton(onClick = { createCardProfileViewModel.addNote() }) {
+            Icon(Icons.Default.Add, contentDescription = "Add Note")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -149,18 +146,15 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             }
         }
 
-        Row {
-            Button(onClick = { cardEditorViewModel.smartBackgroundCheck(uiState.name) }) {
-                Text("Smart Background Check")
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Button(onClick = { cardEditorViewModel.geminiDeepResearch() }) {
-                Text("Gemini Deep Research")
-            }
+        Button(onClick = {
+            createCardProfileViewModel.saveCardProfile()
+            navController.popBackStack()
+        }) {
+            Text("Save")
         }
 
         uiState.error?.let {
-            Text(text = it.message, color = MaterialTheme.colorScheme.error)
+            Text(text = it, color = MaterialTheme.colorScheme.error)
         }
     }
 }

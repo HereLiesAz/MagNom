@@ -1,5 +1,8 @@
 package com.hereliesaz.magnom.data
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class AnonymizedCardProfile(
     val track1Length: Int,
     val track2Length: Int,
