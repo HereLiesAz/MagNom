@@ -207,7 +207,7 @@ fun ParseScreen(
                             expanded = expanded
                         )
                     },
-                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.Primary)
+                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
