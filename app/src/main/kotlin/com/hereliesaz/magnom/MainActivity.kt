@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -78,6 +79,7 @@ class MainActivity : ComponentActivity() {
                         Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
 
                         Row(modifier = Modifier.weight(1f)) {
+                            val navBackStackEntry by navController.currentBackStackEntryAsState()
                             AzNavRail {
                                 azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles") {
                                     navController.navigate(Screen.Main.route)
@@ -108,8 +110,7 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.Settings.route)
                                 }
                                 azMenuItem(id = "help", text = "Help") {
-                                    val currentRoute =
-                                        navController.currentBackStackEntryAsState().value?.destination?.route
+                                    val currentRoute = navBackStackEntry?.destination?.route
                                     if (currentRoute != null) {
                                         navController.navigate(Screen.Help.createRoute(currentRoute))
                                     }
