@@ -1,16 +1,12 @@
 package com.hereliesaz.magnom.ui.screens
 
 import android.annotation.SuppressLint
-import android.content.Context
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +16,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -33,45 +28,42 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.data.BackupManager
-import com.hereliesaz.magnom.data.SettingsRepository
+import com.hereliesaz.magnom.data.CardRepository
+import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.services.BleCommunicationService
-import com.hereliesaz.magnom.viewmodels.SettingsViewModel
-import com.hereliesaz.magnom.viewmodels.SettingsViewModelFactory
+import com.hereliesaz.magnom.viewmodels.MagspoofReplayViewModel
+import com.hereliesaz.magnom.viewmodels.MagspoofReplayViewModelFactory
+import androidx.compose.runtime.LaunchedEffect
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
+fun MagspoofReplayScreen(
     navController: NavController,
     bleCommunicationService: BleCommunicationService
 ) {
-    val context: Context = LocalContext.current.applicationContext
-    val settingsRepository = SettingsRepository(context)
-    val backupManager = BackupManager(context)
-    val viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(settingsRepository, bleCommunicationService, backupManager)
+    val context = LocalContext.current
+    val cardRepository = CardRepository(context, BackupManager(context))
+    val viewModel: MagspoofReplayViewModel = viewModel(
+        factory = MagspoofReplayViewModelFactory(bleCommunicationService, cardRepository)
     )
     val discoveredDevices by viewModel.discoveredDevices.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
-    val backupPassword by viewModel.backupPassword.collectAsState()
-    val backupUri by viewModel.backupUri.collectAsState()
+    val transmissionStatus by viewModel.transmissionStatus.collectAsState()
 
-    val backupLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/zip")
-    ) { uri ->
-        viewModel.setBackupUri(uri)
-    }
+    val selectedCardId = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getStateFlow<String?>("selectedCardId", null)
+        ?.collectAsState()
 
-    val restoreLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        viewModel.setBackupUri(uri)
+    LaunchedEffect(selectedCardId?.value) {
+        viewModel.setSelectedCard(selectedCardId?.value)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Magspoof Replay") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -96,6 +88,8 @@ fun SettingsScreen(
                 }
             }
             Text("Connection State: $connectionState")
+            Text("Transmission Status: $transmissionStatus")
+            Text("Selected Card: ${viewModel.selectedCard.collectAsState().value?.name ?: "None"}")
             LazyColumn {
                 items(discoveredDevices) { device ->
                     Text(
@@ -107,32 +101,19 @@ fun SettingsScreen(
                     )
                 }
             }
-            OutlinedTextField(
-                value = backupPassword,
-                onValueChange = { viewModel.setBackupPassword(it) },
-                label = { Text("Backup Password") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Row {
-                Button(onClick = { backupLauncher.launch("magnom_backup.zip") }) {
-                    Text("Select Backup Location")
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Button(onClick = { restoreLauncher.launch(arrayOf("application/zip")) }) {
-                    Text("Select Backup to Restore")
-                }
+            Button(onClick = { navController.navigate(Screen.CardSelection.route) }) {
+                Text("Select Card")
             }
-            Text("Selected backup file: ${backupUri?.path}")
-            Spacer(modifier = Modifier.height(16.dp))
-            Row {
-                Button(onClick = { viewModel.backup() }) {
-                    Text("Backup")
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Button(onClick = { viewModel.restore() }) {
-                    Text("Restore")
-                }
+            Button(
+                onClick = {
+                    viewModel.selectedCard.value?.let {
+                        viewModel.writeTrackData(it.track1, it.track2)
+                        viewModel.sendTransmitCommand()
+                    }
+                },
+                enabled = viewModel.selectedCard.collectAsState().value != null
+            ) {
+                Text("Transmit")
             }
         }
     }

@@ -19,11 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.viewmodels.MainViewModel
 
 @Composable
-fun CardSelectionScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
+fun CardSelectionScreen(
+    navController: NavController,
+    mainViewModel: MainViewModel = viewModel(),
+    onCardSelected: (String) -> Unit
+) {
     val cardProfiles by mainViewModel.cardProfiles.collectAsState()
 
     Scaffold {
@@ -39,7 +42,7 @@ fun CardSelectionScreen(navController: NavController, mainViewModel: MainViewMod
                     ListItem(
                         headlineContent = { Text(profile.name, style = MaterialTheme.typography.bodySmall) },
                         modifier = Modifier.clickable {
-                            navController.navigate(Screen.Parse.createRoute(profile.id))
+                            onCardSelected(profile.id)
                         }
                     )
                     HorizontalDivider()
