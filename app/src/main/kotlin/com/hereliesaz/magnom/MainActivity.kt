@@ -37,19 +37,36 @@ import com.hereliesaz.magnom.ui.screens.BruteforceScreen
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CardSelectionScreen
 import com.hereliesaz.magnom.ui.screens.CreateCardProfileScreen
+import com.hereliesaz.magnom.ui.screens.AdvancedEditorScreen
 import com.hereliesaz.magnom.ui.screens.DeviceScreen
 import com.hereliesaz.magnom.ui.screens.HelpScreen
 import com.hereliesaz.magnom.ui.screens.MainScreen
+import com.hereliesaz.magnom.ui.screens.MagspoofReplayScreen
 import com.hereliesaz.magnom.ui.screens.ParseScreen
+import com.hereliesaz.magnom.ui.screens.SettingsScreen
 import com.hereliesaz.magnom.ui.screens.SwipeSelectionScreen
 import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 import com.hereliesaz.magnom.viewmodels.ParseViewModel
+import com.hereliesaz.magnom.services.BleCommunicationService
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var usbCommunicationService: UsbCommunicationService
     private var isUsbServiceBound = false
+    private lateinit var bleCommunicationService: BleCommunicationService
+    private var isBleServiceBound = false
+
+    private val bleServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            bleCommunicationService = (service as BleCommunicationService.LocalBinder).getService()
+            isBleServiceBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            isBleServiceBound = false
+        }
+    }
 
     private val usbServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -98,7 +115,7 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.MagspoofReplay.route)
                                 }
                                 azRailItem(id = "advanced_editor", text = "Advanced") {
-                                    navController.navigate(Screen.AdvancedEditor.route)
+                                     navController.navigate(Screen.AdvancedEditor.createRoute(null))
                                 }
                                 azRailItem(id = "devices", text = "Devices") {
                                     navController.navigate(Screen.Devices.route)
@@ -106,10 +123,10 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "bruteforce", text = "Bruteforce") {
                                     navController.navigate(Screen.Bruteforce.route)
                                 }
-                                azMenuItem(id = "settings", text = "Settings") {
+                                azRailItem(id = "settings", text = "Settings", screenTitle = "Settings") {
                                     navController.navigate(Screen.Settings.route)
                                 }
-                                azMenuItem(id = "help", text = "Help") {
+                                azRailItem(id = "help", text = "Help") {
                                     val currentRoute = navBackStackEntry?.destination?.route
                                     if (currentRoute != null) {
                                         navController.navigate(Screen.Help.createRoute(currentRoute))
@@ -165,6 +182,29 @@ class MainActivity : ComponentActivity() {
                                 composable(Screen.Bruteforce.route) {
                                     BruteforceScreen()
                                 }
+                                composable(Screen.AdvancedEditor.route) { backStackEntry ->
+                                    val cardId = backStackEntry.arguments?.getString("cardId")
+                                    AdvancedEditorScreen(
+                                        navController = navController,
+                                        cardId = if (cardId == "null") null else cardId
+                                    )
+                                }
+                                composable(Screen.Settings.route) {
+                                    if (isBleServiceBound) {
+                                        SettingsScreen(
+                                            navController = navController,
+                                            bleCommunicationService = bleCommunicationService
+                                        )
+                                    }
+                                }
+                                composable(Screen.MagspoofReplay.route) {
+                                    if (isBleServiceBound) {
+                                        MagspoofReplayScreen(
+                                            navController = navController,
+                                            bleCommunicationService = bleCommunicationService
+                                        )
+                                    }
+                                }
                                 composable("transmission/{cardId}") { backStackEntry ->
                                     val cardId = backStackEntry.arguments?.getString("cardId")
                                     if (cardId != null) {
@@ -191,6 +231,9 @@ class MainActivity : ComponentActivity() {
         Intent(this, UsbCommunicationService::class.java).also { intent ->
             bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
         }
+        Intent(this, BleCommunicationService::class.java).also { intent ->
+            bindService(intent, bleServiceConnection, Context.BIND_AUTO_CREATE)
+        }
     }
 
     override fun onStop() {
@@ -198,6 +241,10 @@ class MainActivity : ComponentActivity() {
         if (isUsbServiceBound) {
             unbindService(usbServiceConnection)
             isUsbServiceBound = false
+        }
+        if (isBleServiceBound) {
+            unbindService(bleServiceConnection)
+            isBleServiceBound = false
         }
     }
 }

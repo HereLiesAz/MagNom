@@ -6,7 +6,9 @@ sealed class Screen(val route: String) {
         fun createRoute(cardId: String) = "parse/$cardId"
     }
     object SwipeSelection : Screen("swipe_selection")
-    object AdvancedEditor : Screen("advanced_editor")
+    object AdvancedEditor : Screen("advanced_editor/{cardId}") {
+        fun createRoute(cardId: String?) = "advanced_editor/$cardId"
+    }
     object Settings : Screen("settings")
     object Editor : Screen("editor/{cardId}") {
         fun createRoute(cardId: String?) = "editor/$cardId"
