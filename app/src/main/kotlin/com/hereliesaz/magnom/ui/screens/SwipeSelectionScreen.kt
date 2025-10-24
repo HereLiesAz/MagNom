@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,15 +36,15 @@ fun SwipeSelectionScreen(
         horizontalAlignment = Alignment.End
     ) {
         uiState.errorMessage?.let {
-            Text(text = it)
+            Text(text = it, style = MaterialTheme.typography.bodySmall)
         }
-        Text(text = "ZCR Threshold: ${uiState.zcrThreshold}")
+        Text(text = "ZCR Threshold: ${uiState.zcrThreshold}", style = MaterialTheme.typography.bodySmall)
         Slider(
             value = uiState.zcrThreshold.toFloat(),
             onValueChange = { parseViewModel.onZcrThresholdChange(it.toDouble()) },
             valueRange = 0f..1f
         )
-        Text(text = "Window Size: ${uiState.windowSize}")
+        Text(text = "Window Size: ${uiState.windowSize}", style = MaterialTheme.typography.bodySmall)
         Slider(
             value = uiState.windowSize.toFloat(),
             onValueChange = { parseViewModel.onWindowSizeChange(it.toInt()) },
@@ -53,7 +54,8 @@ fun SwipeSelectionScreen(
             items(uiState.swipes) { swipe ->
                 Text(
                     text = "Swipe from ${swipe.start} to ${swipe.end}",
-                    modifier = Modifier.clickable { parseViewModel.onSwipeSelected(swipe) }
+                    modifier = Modifier.clickable { parseViewModel.onSwipeSelected(swipe) },
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
@@ -66,7 +68,7 @@ fun SwipeSelectionScreen(
             },
             enabled = uiState.selectedSwipe != null
         ) {
-            Text("Create New Profile")
+            Text("Create New Profile", style = MaterialTheme.typography.bodySmall)
         }
         Button(
             onClick = {
@@ -74,10 +76,10 @@ fun SwipeSelectionScreen(
             },
             enabled = uiState.selectedSwipe != null
         ) {
-            Text("Create Trimmed Clip")
+            Text("Create Trimmed Clip", style = MaterialTheme.typography.bodySmall)
         }
         uiState.trimmedFilePath?.let {
-            Text("Trimmed file saved to: $it")
+            Text("Trimmed file saved to: $it", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

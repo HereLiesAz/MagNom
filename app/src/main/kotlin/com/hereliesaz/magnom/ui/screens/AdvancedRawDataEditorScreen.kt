@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -32,21 +33,23 @@ fun AdvancedRawDataEditorScreen(navController: NavController, viewModel: Advance
             value = uiState.rawTrack1,
             onValueChange = viewModel::onTrack1Change,
             label = { Text("Raw Track 1 Data") },
+            textStyle = MaterialTheme.typography.bodySmall
         )
         TextField(
             value = uiState.rawTrack2,
             onValueChange = viewModel::onTrack2Change,
             label = { Text("Raw Track 2 Data") },
+            textStyle = MaterialTheme.typography.bodySmall,
             isError = !uiState.isTrack2Valid
         )
 
         if (uiState.isTrack2Valid && uiState.parsedTrack2Data != null) {
-            Text("Parsed Track 2 Data:")
-            Text("PAN: ${uiState.parsedTrack2Data?.pan}")
-            Text("Expiration: ${uiState.parsedTrack2Data?.expirationDate}")
-            Text("Service Code: ${uiState.parsedTrack2Data?.serviceCode}")
+            Text("Parsed Track 2 Data:", style = MaterialTheme.typography.bodySmall)
+            Text("PAN: ${uiState.parsedTrack2Data?.pan}", style = MaterialTheme.typography.bodySmall)
+            Text("Expiration: ${uiState.parsedTrack2Data?.expirationDate}", style = MaterialTheme.typography.bodySmall)
+            Text("Service Code: ${uiState.parsedTrack2Data?.serviceCode}", style = MaterialTheme.typography.bodySmall)
         } else if (!uiState.isTrack2Valid) {
-            Text("Invalid Track 2 Data", color = Color.Red)
+            Text("Invalid Track 2 Data", color = Color.Red, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

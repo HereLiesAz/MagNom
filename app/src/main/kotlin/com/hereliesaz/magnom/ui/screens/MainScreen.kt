@@ -57,7 +57,7 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { navController.navigate(Screen.Editor.createRoute(null)) }) {
-                Text("+")
+                Text("+", style = MaterialTheme.typography.bodySmall)
             }
         }
     ) { padding ->
@@ -72,13 +72,13 @@ fun MainScreen(navController: NavController, mainViewModel: MainViewModel = view
                 Text(
                     text = "No card profiles saved. \n Click the '+' button to add one.",
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodySmall
                 )
             } else {
                 LazyColumn {
                     items(cardProfiles) { profile ->
                         ListItem(
-                            headlineContent = { Text(profile.name) },
+                            headlineContent = { Text(profile.name, style = MaterialTheme.typography.bodySmall) },
                             modifier = Modifier.clickable {
                                 navController.navigate(Screen.Transmission.createRoute(profile.id))
                             }

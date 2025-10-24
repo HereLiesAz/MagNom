@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +37,7 @@ fun CardSelectionScreen(navController: NavController, mainViewModel: MainViewMod
             LazyColumn {
                 items(cardProfiles) { profile ->
                     ListItem(
-                        headlineContent = { Text(profile.name) },
+                        headlineContent = { Text(profile.name, style = MaterialTheme.typography.bodySmall) },
                         modifier = Modifier.clickable {
                             navController.navigate(Screen.Parse.createRoute(profile.id))
                         }

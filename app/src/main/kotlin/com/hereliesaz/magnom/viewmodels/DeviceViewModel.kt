@@ -40,7 +40,11 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
         override fun onReceive(context: Context, intent: Intent) {
             if (ACTION_USB_PERMISSION == intent.action) {
                 synchronized(this) {
-                    val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+                    @Suppress("DEPRECATION") val device: UsbDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+                    } else {
+                        intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+                    }
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         device?.let { connectToDevice(it) }
                     } else {

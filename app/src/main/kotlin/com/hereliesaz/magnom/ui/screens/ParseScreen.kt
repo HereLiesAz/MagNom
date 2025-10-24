@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.navigation.Screen
@@ -61,7 +63,7 @@ fun ParseScreen(
             horizontalAlignment = Alignment.End
         ) {
             IconButton(onClick = { parseViewModel.togglePlayback() }) {
-                Text(if (uiState.isPlaying) "Stop" else "Play")
+                Text(if (uiState.isPlaying) "Stop" else "Play", style = MaterialTheme.typography.bodySmall)
             }
 
             uiState.waveformData?.let { data ->
@@ -98,7 +100,7 @@ fun ParseScreen(
                         drawText(
                             textMeasurer = textMeasurer,
                             text = trackData[i].toString(),
-                            style = TextStyle(color = Color.Black),
+                            style = TextStyle(color = Color.Black, fontSize = 12.sp),
                             topLeft = Offset(x = i * charStep - uiState.panOffset, y = size.height - 50)
                         )
                     }
@@ -155,14 +157,14 @@ fun ParseScreen(
                     }
                 }
             }) {
-                Text("Select Audio File")
+                Text("Select Audio File", style = MaterialTheme.typography.bodySmall)
             }
             uiState.selectedFileUri?.let {
-                Text("Selected file: ${it.path}")
+                Text("Selected file: ${it.path}", style = MaterialTheme.typography.bodySmall)
             }
 
             uiState.errorMessage?.let {
-                Text(text = it)
+                Text(text = it, style = MaterialTheme.typography.bodySmall)
             }
             Canvas(
                 modifier = Modifier
@@ -198,6 +200,7 @@ fun ParseScreen(
                     value = uiState.selectedDevice?.productName?.toString() ?: "Select a device",
                     onValueChange = {},
                     readOnly = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(
                             expanded = expanded
@@ -213,7 +216,7 @@ fun ParseScreen(
                 ) {
                     uiState.availableDevices.forEach { device ->
                         DropdownMenuItem(
-                            text = { Text(device.productName.toString()) },
+                            text = { Text(device.productName.toString(), style = MaterialTheme.typography.bodySmall) },
                             onClick = {
                                 parseViewModel.onDeviceSelected(device)
                                 expanded = false
@@ -239,15 +242,15 @@ fun ParseScreen(
                     }
                 }
             }) {
-                Text(if (uiState.isRecording) "Stop Recording" else "Start Recording")
+                Text(if (uiState.isRecording) "Stop Recording" else "Start Recording", style = MaterialTheme.typography.bodySmall)
             }
             uiState.savedFilePath?.let {
-                Text("Recording saved to: $it")
+                Text("Recording saved to: $it", style = MaterialTheme.typography.bodySmall)
                 Button(onClick = {
                     parseViewModel.onFileSelected(context, Uri.fromFile(java.io.File(it)))
                     navController.navigate(Screen.SwipeSelection.route)
                 }) {
-                    Text("Parse Recording")
+                    Text("Parse Recording", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

@@ -61,7 +61,7 @@ fun TransmissionInterfaceScreen(
                 onClick = { viewModel.transmit() },
                 enabled = !isTransmitting
             ) {
-                Text("Transmit")
+                Text("Transmit", style = MaterialTheme.typography.bodySmall)
             }
             Spacer(modifier = Modifier.height(16.dp))
             when (transmissionStatus) {
@@ -70,13 +70,15 @@ fun TransmissionInterfaceScreen(
                     "Transmission successful!",
                     color = Color.Green,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall
                 )
                 else -> Text(
                     transmissionStatus,
                     color = MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }

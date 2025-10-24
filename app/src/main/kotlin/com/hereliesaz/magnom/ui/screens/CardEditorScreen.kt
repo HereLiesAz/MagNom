@@ -68,7 +68,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             TextField(
                 value = uiState.name,
                 onValueChange = createCardProfileViewModel::onNameChange,
-                label = { Text("Name") }
+                label = { Text("Name") },
+                textStyle = MaterialTheme.typography.bodySmall
             )
             InfoIcon("Enter the full name of the cardholder.")
         }
@@ -76,7 +77,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             TextField(
                 value = uiState.pan,
                 onValueChange = createCardProfileViewModel::onPanChange,
-                label = { Text("PAN") }
+                label = { Text("PAN") },
+                textStyle = MaterialTheme.typography.bodySmall
             )
             InfoIcon("Enter the Primary Account Number (PAN) of the card.")
         }
@@ -84,7 +86,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             TextField(
                 value = uiState.expirationDate,
                 onValueChange = createCardProfileViewModel::onExpirationDateChange,
-                label = { Text("Expiration Date (YYMM)") }
+                label = { Text("Expiration Date (YYMM)") },
+                textStyle = MaterialTheme.typography.bodySmall
             )
             InfoIcon("Enter the expiration date in YYMM format.")
         }
@@ -92,7 +95,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             TextField(
                 value = uiState.serviceCode,
                 onValueChange = createCardProfileViewModel::onServiceCodeChange,
-                label = { Text("Service Code") }
+                label = { Text("Service Code") },
+                textStyle = MaterialTheme.typography.bodySmall
             )
             InfoIcon("Enter the service code of the card.")
         }
@@ -102,7 +106,8 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
                 TextField(
                     value = note,
                     onValueChange = { createCardProfileViewModel.onNoteChange(index, it) },
-                    label = { Text("Note ${index + 1}") }
+                    label = { Text("Note ${index + 1}") },
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
                 IconButton(onClick = { createCardProfileViewModel.removeNote(index) }) {
                     Icon(Icons.Default.Delete, contentDescription = "Remove Note")
@@ -118,11 +123,11 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
 
         Row {
             Button(onClick = { launcher.launch("image/*") }) {
-                Text("Select Front Image")
+                Text("Select Front Image", style = MaterialTheme.typography.bodySmall)
             }
             Spacer(modifier = Modifier.width(16.dp))
             Button(onClick = { backLauncher.launch("image/*") }) {
-                Text("Select Back Image")
+                Text("Select Back Image", style = MaterialTheme.typography.bodySmall)
             }
         }
 
@@ -150,11 +155,11 @@ fun CardEditorScreen(navController: NavController, cardId: String? = null) {
             createCardProfileViewModel.saveCardProfile()
             navController.popBackStack()
         }) {
-            Text("Save")
+            Text("Save", style = MaterialTheme.typography.bodySmall)
         }
 
         uiState.error?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error)
+            Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

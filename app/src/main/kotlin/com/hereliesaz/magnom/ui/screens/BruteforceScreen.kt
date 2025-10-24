@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -25,18 +26,20 @@ fun BruteforceScreen(bruteforceViewModel: BruteforceViewModel = viewModel()) {
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.End
     ) {
         Text(text = "Bruteforce", style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
         TextField(
             value = uiState.target,
             onValueChange = bruteforceViewModel::onTargetChange,
-            label = { Text("Target") }
+            label = { Text("Target") },
+            textStyle = MaterialTheme.typography.bodySmall
         )
         TextField(
             value = uiState.charset,
             onValueChange = bruteforceViewModel::onCharsetChange,
-            label = { Text("Character Set") }
+            label = { Text("Character Set") },
+            textStyle = MaterialTheme.typography.bodySmall
         )
         Button(
             onClick = {
@@ -47,8 +50,8 @@ fun BruteforceScreen(bruteforceViewModel: BruteforceViewModel = viewModel()) {
                 }
             }
         ) {
-            Text(if (uiState.isRunning) "Stop" else "Start")
+            Text(if (uiState.isRunning) "Stop" else "Start", style = MaterialTheme.typography.bodySmall)
         }
-        Text(text = "Current Attempt: ${uiState.currentAttempt}")
+        Text(text = "Current Attempt: ${uiState.currentAttempt}", style = MaterialTheme.typography.bodySmall)
     }
 }

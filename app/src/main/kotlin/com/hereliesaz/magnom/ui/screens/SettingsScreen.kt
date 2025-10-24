@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -80,12 +81,13 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
         var restorePassword by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { viewModel.onRestoreDialogDismissed() },
-            title = { Text("Enter Backup Password") },
+            title = { Text("Enter Backup Password", style = MaterialTheme.typography.bodySmall) },
             text = {
                 OutlinedTextField(
                     value = restorePassword,
                     onValueChange = { restorePassword = it },
-                    label = { Text("Password") }
+                    label = { Text("Password") },
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
             },
             confirmButton = {
@@ -96,12 +98,12 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
                         }
                     }
                 ) {
-                    Text("Restore")
+                    Text("Restore", style = MaterialTheme.typography.bodySmall)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.onRestoreDialogDismissed() }) {
-                    Text("Cancel")
+                    Text("Cancel", style = MaterialTheme.typography.bodySmall)
                 }
             }
         )
@@ -110,8 +112,8 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.onRestartDialogDismissed() },
-            title = { Text("Restart Required") },
-            text = { Text("The application must be restarted for the changes to take effect.") },
+            title = { Text("Restart Required", style = MaterialTheme.typography.bodySmall) },
+            text = { Text("The application must be restarted for the changes to take effect.", style = MaterialTheme.typography.bodySmall) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -120,7 +122,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
                         // Instruct the user to do it manually.
                     }
                 ) {
-                    Text("OK")
+                    Text("OK", style = MaterialTheme.typography.bodySmall)
                 }
             }
         )
@@ -146,13 +148,13 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
                     )
                 )
             }) {
-                Text("Start Scan")
+                Text("Start Scan", style = MaterialTheme.typography.bodySmall)
             }
             Button(onClick = { viewModel.stopScan() }) {
-                Text("Stop Scan")
+                Text("Stop Scan", style = MaterialTheme.typography.bodySmall)
             }
         }
-        Text("Status: ${connectionState.name}")
+        Text("Status: ${connectionState.name}", style = MaterialTheme.typography.bodySmall)
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(discoveredDevices) { device ->
                 Text(
@@ -160,7 +162,8 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { viewModel.connect(device.device) }
-                        .padding(8.dp)
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
@@ -171,7 +174,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Enable Real-time Backup", modifier = Modifier.weight(1f))
+            Text("Enable Real-time Backup", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
             Switch(
                 checked = backupEnabled,
                 onCheckedChange = { viewModel.setBackupEnabled(it) }
@@ -183,7 +186,8 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
             onValueChange = { viewModel.setBackupPassword(it) },
             label = { Text("Backup Password") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = backupEnabled
+            enabled = backupEnabled,
+            textStyle = MaterialTheme.typography.bodySmall
         )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
@@ -191,7 +195,8 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
             onValueChange = { backupFilename = it },
             label = { Text("Backup Filename") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = backupEnabled
+            enabled = backupEnabled,
+            textStyle = MaterialTheme.typography.bodySmall
         )
         Spacer(modifier = Modifier.height(8.dp))
         Button(
@@ -199,14 +204,14 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
             modifier = Modifier.fillMaxWidth(),
             enabled = backupEnabled
         ) {
-            Text("Set Backup Location")
+            Text("Set Backup Location", style = MaterialTheme.typography.bodySmall)
         }
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = { fileRestoreLauncher.launch(arrayOf("application/*")) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Restore from Backup")
+            Text("Restore from Backup", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

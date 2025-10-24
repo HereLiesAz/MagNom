@@ -55,22 +55,23 @@ fun DeviceScreen(deviceViewModel: DeviceViewModel = viewModel()) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("No USB devices found.")
+            Column(horizontalAlignment = Alignment.End) {
+                Text("No USB devices found.", style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { deviceViewModel.refreshUsbDevices() }) {
-                    Text("Refresh USB Devices")
+                    Text("Refresh USB Devices", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp)
+            contentPadding = PaddingValues(16.dp),
+            horizontalAlignment = Alignment.End
         ) {
             item {
                 Button(onClick = { deviceViewModel.refreshUsbDevices() }) {
-                    Text("Refresh USB Devices")
+                    Text("Refresh USB Devices", style = MaterialTheme.typography.bodySmall)
                 }
             }
             items(uiState.usbDevices) { device ->
@@ -100,11 +101,17 @@ fun UsbDeviceListItem(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.End
+        ) {
             Text(text = device.deviceName, style = MaterialTheme.typography.titleLarge)
-            Text(text = "Vendor ID: ${device.vendorId}, Product ID: ${device.productId}")
+            Text(
+                text = "Vendor ID: ${device.vendorId}, Product ID: ${device.productId}",
+                style = MaterialTheme.typography.bodySmall
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Status: $connectionState")
+            Text("Status: $connectionState", style = MaterialTheme.typography.bodySmall)
             Spacer(modifier = Modifier.height(8.dp))
 
             if (connectionState == ConnectionState.CONNECTED) {
@@ -112,25 +119,30 @@ fun UsbDeviceListItem(
                     value = track1,
                     onValueChange = { track1 = it },
                     label = { Text("Track 1 Data") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = track2,
                     onValueChange = { track2 = it },
                     label = { Text("Track 2 Data") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { onSendCommand(track1, track2) },
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text("Send and Spoof")
+                    Text("Send and Spoof", style = MaterialTheme.typography.bodySmall)
                 }
             } else {
                 Button(onClick = onConnectClicked) {
-                    Text(if (connectionState == ConnectionState.CONNECTING) "Connecting..." else "Connect")
+                    Text(
+                        if (connectionState == ConnectionState.CONNECTING) "Connecting..." else "Connect",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
