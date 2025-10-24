@@ -37,7 +37,12 @@ class AnalyticsRepository(
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                client.post("https://placeholder.analytics.endpoint/data") {
+                val url = if (com.hereliesaz.magnom.BuildConfig.DEBUG) {
+                    "http://10.0.2.2:8080/data"
+                } else {
+                    "https://placeholder.analytics.endpoint/data"
+                }
+                client.post(url) {
                     contentType(ContentType.Application.Json)
                     setBody(anonymizedProfile)
                 }
