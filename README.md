@@ -32,12 +32,12 @@ The project is currently in the **alpha development stage**. The core infrastruc
     *   Allow zooming and panning of the waveform.
     *   Display the corresponding characters under the waveform.
     *   Allow the user to play the sound of the waveform.
-*   **Audio File Parsing:**
-    *   Allow the user to load an audio file.
-    *   Parse the file for magnetic stripe swipe data.
+*   **Audio Processing:**
+    *   Allow the user to load an audio file and parse it for magnetic stripe swipe data.
     *   Identify and extract all swipes in the file.
-*   **In-App Audio Recording:**
     *   Allow the user to record audio from within the app.
+    *   Provide options to select the recording device.
+    *   Create a trimmed audio clip for each swipe.
 *   **Backup and Restore:**
     *   Allow the user to back up all their data to a password-protected file.
     *   Allow the user to restore their data from a backup file.
@@ -58,10 +58,6 @@ The project is currently in the **alpha development stage**. The core infrastruc
 *   **In-App Help:**
     *   Add info icons to all UI elements to provide popup dialogs with information.
     *   Add a "Help" button to the `AzNavRail` that brings up a dialog with detailed instructions for the current screen.
-*   **Recording Device Selection:**
-    *   Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
-*   **Trimmed Audio Clip Creation:**
-    *   Create a trimmed audio clip for each swipe.
 
 ### Next Steps:
 
