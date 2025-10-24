@@ -1,6 +1,6 @@
 [versions]
 agp = "8.13.0"
-aznavrail = "3.16"
+aznavrail = "4.1"
 bcprovJdk15on = "1.70"
 coreKtx = "1.17.0"
 junit = "4.13.2"
@@ -9,12 +9,12 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.11.0"
 kotlin = "2.2.20"
-composeBom = "2025.10.00"
+composeBom = "2025.10.01"
 securityCrypto = "1.1.0"
 navigationCompose = "2.9.5"
 gson = "2.13.2"
 zip4j = "2.11.5"
-ktor = "2.3.12"
+ktor = "3.3.1"
 
 [libraries]
 aznavrail = { module = "com.github.HereLiesAz:AzNavRail", version.ref = "aznavrail" }
