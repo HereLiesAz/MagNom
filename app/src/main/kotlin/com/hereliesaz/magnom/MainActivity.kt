@@ -84,15 +84,30 @@ class MainActivity : ComponentActivity() {
                         Row(modifier = Modifier.weight(1f)) {
                             val navBackStackEntry by navController.currentBackStackEntryAsState()
                             AzNavRail {
-                                azRailItem(id = "main", text = "Main", screenTitle = "Card Profiles") {
+                                azRailItem(id = "main",
+                                    text = "Main",
+                                    screenTitle = "Card Profiles",
+                                    shape = AzButtonShape.NONE
+                                ) {
                                     navController.navigate(Screen.Main.route)
                                 }
-                                azRailItem(id = "parse", text = "Parse") {
+                                azRailItem(id = "parse",
+                                    text = "Parse",
+                                    shape = AzButtonShape.NONE
+                                ) {
                                     navController.navigate("parse/null")
                                 }
-                                azRailItem(id = "editor", text = "Editor") {
+                                azRailItem(id = "editor",
+                                    text = "Editor",
+                                    shape = AzButtonShape.NONE
+                                ) {
                                     navController.navigate("editor/null")
                                 }
+                                azRailItem(id = "advanced_editor", text = "Advanced", screenTitle = "Advanced Editor",
+                                shape = AzButtonShape.NONE
+                                ) {
+                                navController.navigate(Screen.AdvancedEditor.createRoute(null))
+                            }
                                 azRailItem(
                                     id = "magspoof_replay",
                                     text = "Replay",
@@ -100,24 +115,32 @@ class MainActivity : ComponentActivity() {
                                 ) {
                                     navController.navigate(Screen.MagspoofReplay.route)
                                 }
-                                azRailItem(id = "advanced_editor", text = "Advanced") {
-                                     navController.navigate(Screen.AdvancedEditor.createRoute(null))
-                                }
-                                azRailItem(id = "devices", text = "Devices") {
+                                azRailItem(id = "bruteforce", text = "Brute", screenTitle = "Bruteforce",
+                                shape = AzButtonShape.NONE
+                                ) {
+                                navController.navigate(Screen.Bruteforce.route)
+                            }
+
+                                azRailItem(id = "devices", text = "Devices",
+                                    shape = AzButtonShape.NONE
+                                ) {
                                     navController.navigate(Screen.Devices.route)
                                 }
-                                azRailItem(id = "bruteforce", text = "Bruteforce") {
-                                    navController.navigate(Screen.Bruteforce.route)
-                                }
-                                azRailItem(id = "settings", text = "Settings", screenTitle = "Settings") {
-                                    navController.navigate(Screen.Settings.route)
-                                }
-                                azRailItem(id = "help", text = "Help") {
+
+
+                                azRailItem(id = "help", text = "Help",
+                                    shape = AzButtonShape.NONE
+                                ) {
                                     val currentRoute = navBackStackEntry?.destination?.route
                                     if (currentRoute != null) {
                                         navController.navigate(Screen.Help.createRoute(currentRoute))
                                     }
                                 }
+                                azRailItem(id = "settings", text = "Settings", screenTitle = "Settings",
+                                shape = AzButtonShape.NONE
+                                ) {
+                                navController.navigate(Screen.Settings.route)
+                            }
                             }
                             NavHost(
                                 navController = navController,
