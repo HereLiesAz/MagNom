@@ -76,10 +76,10 @@ class ParseViewModel : ViewModel() {
                 val waveformData = generateWaveformData(audioData)
                 val swipes = detectSwipes(audioData, _uiState.value.zcrThreshold, _uiState.value.windowSize)
 
-                // Attempt to decode the whole file or swipes?
-                // For now, decode the whole file as it might contain one swipe.
-                // Or better, if swipes are detected, decode each swipe.
-                val decodedTracks = AudioDecoder.decode(audioData)
+                // Decode on Default dispatcher (CPU intensive)
+                val decodedTracks = withContext(Dispatchers.Default) {
+                     AudioDecoder.decode(audioData)
+                }
 
                 _uiState.update {
                     it.copy(
@@ -180,7 +180,9 @@ class ParseViewModel : ViewModel() {
             val swipes = detectSwipes(audioData, _uiState.value.zcrThreshold, _uiState.value.windowSize)
 
             // Decode recorded audio
-            val decodedTracks = AudioDecoder.decode(audioData)
+            val decodedTracks = withContext(Dispatchers.Default) {
+                 AudioDecoder.decode(audioData)
+            }
 
             _uiState.update { it.copy(swipes = swipes, potentialTracks = decodedTracks) }
         }
@@ -207,7 +209,9 @@ class ParseViewModel : ViewModel() {
              val audioData = _uiState.value.audioData
              if (swipe.end <= audioData.size && swipe.start >= 0) {
                  val swipeData = audioData.sliceArray(swipe.start until swipe.end)
-                 val decodedTracks = AudioDecoder.decode(swipeData)
+                 val decodedTracks = withContext(Dispatchers.Default) {
+                     AudioDecoder.decode(swipeData)
+                 }
                  _uiState.update { it.copy(potentialTracks = decodedTracks) }
              }
         }

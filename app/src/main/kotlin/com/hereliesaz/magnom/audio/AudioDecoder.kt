@@ -15,7 +15,15 @@ object AudioDecoder {
      * @return A list of potential track strings found.
      */
     fun decode(audioData: ShortArray): List<String> {
-        val bits = extractBits(audioData)
+        // Try raw audio first
+        var bits = extractBits(audioData)
+
+        // If minimal bits found, try differentiating (for square waves)
+        if (bits.size < 10) {
+            val derivative = differentiate(audioData)
+            bits = extractBits(derivative)
+        }
+
         if (bits.isEmpty()) return emptyList()
 
         val bitString = bits.joinToString("")
@@ -38,6 +46,27 @@ object AudioDecoder {
         return results.distinct()
     }
 
+    private fun differentiate(audio: ShortArray): ShortArray {
+        if (audio.isEmpty()) return ShortArray(0)
+        val diff = ShortArray(audio.size)
+        // Simple difference: y[n] = x[n] - x[n-1]
+        // Note: Result might exceed Short range if step is large (e.g. -32768 to 32767).
+        // Square wave jump is ~65000.
+        // We saturate or just wrap? Peak detection only needs relative magnitude.
+        // Wrapping might invert peak direction.
+        // Better to cast to Int, diff, then clamp or scale?
+        // Let's scale by 0.5 to fit Short.
+
+        var prev = audio[0].toInt()
+        for (i in 1 until audio.size) {
+            val curr = audio[i].toInt()
+            val d = (curr - prev) / 2
+            diff[i] = d.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            prev = curr
+        }
+        return diff
+    }
+
     /**
      * F2F Decoding:
      * 1. Find peaks (flux transitions).
@@ -53,43 +82,68 @@ object AudioDecoder {
             intervals.add(peaks[i+1] - peaks[i])
         }
 
-        // Calculate average interval to distinguish 0 and 1
-        // '0' is one interval of length T.
-        // '1' is two intervals of length T/2.
+        if (intervals.isEmpty()) return emptyList()
 
-        // We will use a dynamic threshold.
-        // If interval is ~ 2 * previous_short_interval, it's a 0.
-        // If interval is ~ previous_short_interval, it's a half-bit of a 1.
+        // Calculate average interval to distinguish 0 and 1
+        // Preamble usually consists of '0's (Long intervals).
+        // We look for a sequence of intervals with low variance.
+
+        var threshold = 0.0
+        var foundSync = false
+        var startIndex = 0
+
+        // Try to find sync in first 50 intervals
+        val searchLimit = intervals.size.coerceAtMost(50)
+        for (i in 0 until searchLimit - 5) {
+            val window = intervals.subList(i, i + 5)
+            val avg = window.average()
+            val variance = window.sumOf { (it - avg) * (it - avg) } / 5.0
+
+            // If variance is low relative to average (e.g. < 10% deviation)
+            // 10% of 20 samples = 2. Variance < 4.
+            // Let's say std dev < 0.2 * avg. Variance < 0.04 * avg^2.
+            if (variance < 0.04 * avg * avg) {
+                threshold = avg * 0.75
+                startIndex = i
+                foundSync = true
+                break
+            }
+        }
+
+        // Fallback if no sync found (e.g. very clean generated data without jitter but maybe short?)
+        if (!foundSync) {
+             threshold = intervals.take(10).average() * 0.75
+        }
 
         val bits = mutableListOf<Int>()
-        var i = 0
+        var i = startIndex
 
-        // Calibrate on the first few intervals (preamble usually 0s)
-        // Preamble 0s mean we see regular long intervals.
-        var threshold = intervals.take(10).average() * 0.75
+        // Skip the preamble 0s? No, decode them.
 
         while (i < intervals.size) {
             val interval = intervals[i]
 
             // Check if it's a '1' (Short interval)
-            // A '1' consists of two short intervals.
             if (interval < threshold) {
-                // Ideally we should see another short interval next
+                // Must have a second short interval
                 if (i + 1 < intervals.size) {
                     val next = intervals[i+1]
-                    // Consume two short intervals for a '1'
+                    // Ideally check if 'next' is also short ( < threshold)
+                    // If next is Long, we have a sync error (Short followed by Long).
+                    // But adaptive logic might handle it.
+
                     bits.add(1)
                     i += 2
-                    // Update threshold?
+                    // Update threshold: (interval + next) is roughly one bit duration (T)
                     threshold = (interval + next) * 0.75
                 } else {
-                    break // End of data
+                    break
                 }
             } else {
                 // It's a '0' (Long interval)
                 bits.add(0)
                 i += 1
-                // Update threshold?
+                // Update threshold: interval is roughly T
                 threshold = interval * 0.75
             }
         }
@@ -99,9 +153,6 @@ object AudioDecoder {
 
     private fun findPeaks(audio: ShortArray): List<Int> {
         val peaks = mutableListOf<Int>()
-        // Simple peak detection: Look for local maxima/minima or zero crossings?
-        // F2F transitions are peaks in flux, which result in peaks in voltage (audio).
-        // We look for significant peaks.
 
         // First, normalize or establish a noise floor
         val maxAmp = audio.maxOfOrNull { abs(it.toInt()) } ?: 0
@@ -110,7 +161,23 @@ object AudioDecoder {
         var lastPeakIndex = 0
         var lookingForPositive = true
 
-        // Simple state machine to find alternating peaks
+        // Initial search direction:
+        // If we start negative, look for positive peak first.
+        // If we start positive, look for negative peak?
+        // Standard F2F has alternating flux.
+
+        // Scan for first significant sample to determine phase
+        for (i in 0 until audio.size) {
+            if (audio[i] > noiseFloor) {
+                 lookingForPositive = true // Found positive, so next peak is positive max?
+                 // Wait, if we are climbing, we are looking for the top.
+                 break
+            } else if (audio[i] < -noiseFloor) {
+                 lookingForPositive = false
+                 break
+            }
+        }
+
         for (i in 1 until audio.size - 1) {
             val prev = audio[i-1]
             val curr = audio[i]
@@ -119,13 +186,21 @@ object AudioDecoder {
             if (abs(curr.toInt()) < noiseFloor) continue
 
             if (lookingForPositive) {
-                if (curr > prev && curr > next && curr > 0) {
+                // Local max
+                if (curr >= prev && curr >= next && curr > 0) {
+                     // Check if it's really a peak or just a plateau?
+                     // Simple check: > prev and >= next
+
+                     // De-bounce: ensure we moved far enough from last peak?
+                     // F2F peaks are separated.
+
                     peaks.add(i)
                     lastPeakIndex = i
                     lookingForPositive = false
                 }
             } else {
-                if (curr < prev && curr < next && curr < 0) {
+                // Local min
+                if (curr <= prev && curr <= next && curr < 0) {
                     peaks.add(i)
                     lastPeakIndex = i
                     lookingForPositive = true

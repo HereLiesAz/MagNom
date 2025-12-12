@@ -1,7 +1,5 @@
 package com.hereliesaz.magnom.logic
 
-import java.util.BitSet
-
 object BinaryDecoder {
 
     /**
