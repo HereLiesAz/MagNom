@@ -1,78 +1,136 @@
 package com.hereliesaz.magnom.logic
 
-import kotlin.math.sin
-
 /**
  * Generates raw audio waveform data from magnetic stripe track strings
  * based on the ISO/IEC 7811 F2F (Frequency/Double Frequency) encoding standard.
+ *
+ * Implements features from ViolentMag (MalfunctionMag.py):
+ * - Support for Track 1, 2, and 3.
+ * - Configurable samples per bit and leading zeros.
+ * - Forward, Reverse, and Mimic (Back-and-Forth) swipe generation.
  */
-class WaveformDataGenerator {
+class WaveformDataGenerator(
+    private val sampleRate: Int = 44100,
+    private val samplesPerBit: Int = 28 // Default ~1575 bps at 44.1kHz (44100/1575 = 28)
+) {
 
-    private val sampleRate = 44100
-    private val bitsPerSecond = 1575
-    private val samplesPerBit = sampleRate / bitsPerSecond
+    // Track 2/3 uses a 5-bit character set (4 data bits + 1 odd parity bit).
+    // Track 1 uses a 7-bit character set (6 data bits + 1 odd parity bit).
 
-    // Track 2 uses a 5-bit character set (4 data bits + 1 odd parity bit).
-    private val track2CharMap = mapOf(
-        '0' to "0000", '1' to "0001", '2' to "0010", '3' to "0011",
-        '4' to "0100", '5' to "0101", '6' to "0110", '7' to "0111",
-        '8' to "1000", '9' to "1001", ';' to "1011", '=' to "1101",
-        '?' to "1111"
-    )
+    enum class TrackType(val bits: Int, val baseChar: Int, val maxVal: Int) {
+        TRACK1(7, 32, 63), // Base ' ' (32)
+        TRACK2(5, 48, 15), // Base '0' (48)
+        TRACK3(5, 48, 15)  // Base '0' (48)
+    }
 
-    /**
-     * Calculates and prepends an odd parity bit to a binary string.
-     */
-    private fun withOddParity(dataBits: String): String {
-        val onesCount = dataBits.count { it == '1' }
-        val parityBit = if (onesCount % 2 == 0) "1" else "0"
-        return parityBit + dataBits
+    private fun getTrackType(trackData: String): TrackType {
+        return if (trackData.startsWith("%")) {
+            TrackType.TRACK1
+        } else {
+            TrackType.TRACK2 // Default to Track 2 for ';' start or others
+        }
     }
 
     /**
      * Converts a full track string into its corresponding bitstream, including parity.
      */
-    private fun stringToBitstream(trackData: String): List<Int> {
-        return trackData.flatMap { char ->
-            val dataBits = track2CharMap[char] ?: throw IllegalArgumentException("Invalid character in Track 2 data: $char")
-            val bitsWithParity = withOddParity(dataBits)
-            bitsWithParity.map { it.toString().toInt() }
+    fun stringToBitstream(trackData: String, zeros: Int = 20): List<Int> {
+        val trackType = getTrackType(trackData)
+        val bitstream = mutableListOf<Int>()
+
+        // Leading zeros
+        repeat(zeros) { bitstream.add(0) }
+
+        val lrc = IntArray(trackType.bits) // Rolling LRC
+
+        for (char in trackData) {
+            val raw = char.code - trackType.baseChar
+            if (raw < 0 || raw > trackType.maxVal) {
+                 // Fallback or ignore? ViolentMag throws error/exits. We will ignore or treat as 0?
+                 // Ideally throw to let caller know input is bad.
+                 throw IllegalArgumentException("Illegal character: $char for ${trackType.name}")
+            }
+
+            var parity = 1 // Odd parity start
+
+            // Iterate data bits (bits - 1)
+            for (i in 0 until trackType.bits - 1) {
+                val bit = (raw shr i) and 1
+                bitstream.add(bit)
+                parity += bit
+                lrc[i] = lrc[i] xor bit
+            }
+
+            // Parity bit
+            val parityBit = parity % 2
+            bitstream.add(parityBit)
         }
+
+        // LRC Character
+        var lrcParity = 1
+        for (i in 0 until trackType.bits - 1) {
+            bitstream.add(lrc[i])
+            lrcParity += lrc[i]
+        }
+        // LRC Parity bit
+        bitstream.add(lrcParity % 2)
+
+        // Trailing zeros (same as leading for symmetry in simple generation)
+        repeat(zeros) { bitstream.add(0) }
+
+        return bitstream
     }
 
     /**
      * Generates a square wave PCM float array based on the F2F encoding of the track data.
-     *
-     * @param trackData The complete Track 2 string (including sentinels and LRC).
-     * @return A FloatArray of PCM data ranging from -1.0 to 1.0.
      */
-    fun generate(trackData: String): FloatArray {
-        val bitstream = stringToBitstream(trackData)
+    fun generate(trackData: String, zeros: Int = 20): FloatArray {
+        val bitstream = stringToBitstream(trackData, zeros)
+        return bitsToPcm(bitstream)
+    }
+
+    /**
+     * Generates a reverse swipe waveform.
+     */
+    fun generateReverse(trackData: String, zeros: Int = 20): FloatArray {
+        val bitstream = stringToBitstream(trackData, zeros)
+        // Reverse the bitstream effectively mimics a reverse swipe in magnetic domain?
+        // ViolentMag says: data = data[::-1] (reverses the bit string)
+        return bitsToPcm(bitstream.reversed())
+    }
+
+    /**
+     * Generates a "mimic" swipe: Forward swipe, silence, then Reverse swipe.
+     */
+    fun mimicSwipe(trackData: String, zeros: Int = 20, silenceMs: Int = 500): FloatArray {
+        val forward = generate(trackData, zeros)
+        val reverse = generateReverse(trackData, zeros)
+
+        val silenceSamples = (sampleRate * silenceMs) / 1000
+        val silence = FloatArray(silenceSamples) { 0f }
+
+        return forward + silence + reverse
+    }
+
+    private fun bitsToPcm(bitstream: List<Int>): FloatArray {
         val pcmData = FloatArray(bitstream.size * samplesPerBit)
         var currentLevel = 1.0f
         var writeHead = 0
 
-        // F2F encoding:
-        // '0' has a flux transition only in the middle of the bit cell.
-        // '1' has a flux transition at the beginning and in the middle.
         for (bit in bitstream) {
             val halfBitSamples = samplesPerBit / 2
             val fullBitSamples = samplesPerBit
 
             if (bit == 1) {
-                // Transition at the start of the bit cell for a '1'
                 currentLevel *= -1
             }
 
-            // First half of the bit cell
             for (i in 0 until halfBitSamples) {
                 pcmData[writeHead++] = currentLevel
             }
 
-            // Transition in the middle of the cell for both '0' and '1'
             currentLevel *= -1
 
-            // Second half of the bit cell
             for (i in 0 until (fullBitSamples - halfBitSamples)) {
                  pcmData[writeHead++] = currentLevel
             }

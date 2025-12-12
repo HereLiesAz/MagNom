@@ -12,6 +12,7 @@ import android.net.Uri
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hereliesaz.magnom.audio.AudioDecoder
 import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +46,8 @@ data class ParseScreenState(
     val windowSize: Int = 1024,
     val swipes: List<Swipe> = emptyList(),
     val selectedSwipe: Swipe? = null,
-    val trimmedFilePath: String? = null
+    val trimmedFilePath: String? = null,
+    val potentialTracks: List<String> = emptyList() // Added: List of decoded tracks
 )
 
 class ParseViewModel : ViewModel() {
@@ -68,16 +70,23 @@ class ParseViewModel : ViewModel() {
 
     fun onFileSelected(context: Context, uri: Uri) {
         viewModelScope.launch {
-            _uiState.update { it.copy(selectedFileUri = uri, errorMessage = null, audioData = shortArrayOf(), waveformData = null, swipes = emptyList()) }
+            _uiState.update { it.copy(selectedFileUri = uri, errorMessage = null, audioData = shortArrayOf(), waveformData = null, swipes = emptyList(), potentialTracks = emptyList()) }
             try {
                 val audioData = readWavFile(context, uri)
                 val waveformData = generateWaveformData(audioData)
                 val swipes = detectSwipes(audioData, _uiState.value.zcrThreshold, _uiState.value.windowSize)
+
+                // Decode on Default dispatcher (CPU intensive)
+                val decodedTracks = withContext(Dispatchers.Default) {
+                     AudioDecoder.decode(audioData)
+                }
+
                 _uiState.update {
                     it.copy(
                         audioData = audioData,
                         waveformData = waveformData,
-                        swipes = swipes
+                        swipes = swipes,
+                        potentialTracks = decodedTracks
                     )
                 }
 
@@ -127,7 +136,7 @@ class ParseViewModel : ViewModel() {
         device?.let { audioRecord?.preferredDevice = it }
 
         val outputFile = File(context.cacheDir, "recording.pcm")
-        _uiState.update { it.copy(isRecording = true, savedFilePath = outputFile.absolutePath, audioData = shortArrayOf(), waveformData = emptyList()) }
+        _uiState.update { it.copy(isRecording = true, savedFilePath = outputFile.absolutePath, audioData = shortArrayOf(), waveformData = emptyList(), potentialTracks = emptyList()) }
 
         audioRecord?.startRecording()
 
@@ -167,8 +176,15 @@ class ParseViewModel : ViewModel() {
 
         // Final processing after recording stops
         viewModelScope.launch {
-            val swipes = detectSwipes(_uiState.value.audioData, _uiState.value.zcrThreshold, _uiState.value.windowSize)
-            _uiState.update { it.copy(swipes = swipes) }
+            val audioData = _uiState.value.audioData
+            val swipes = detectSwipes(audioData, _uiState.value.zcrThreshold, _uiState.value.windowSize)
+
+            // Decode recorded audio
+            val decodedTracks = withContext(Dispatchers.Default) {
+                 AudioDecoder.decode(audioData)
+            }
+
+            _uiState.update { it.copy(swipes = swipes, potentialTracks = decodedTracks) }
         }
     }
 
@@ -187,7 +203,18 @@ class ParseViewModel : ViewModel() {
     }
 
     fun onSwipeSelected(swipe: Swipe) {
-        _uiState.update { it.copy(selectedSwipe = swipe) }
+        viewModelScope.launch {
+             _uiState.update { it.copy(selectedSwipe = swipe) }
+             // Optionally decode just this swipe
+             val audioData = _uiState.value.audioData
+             if (swipe.end <= audioData.size && swipe.start >= 0) {
+                 val swipeData = audioData.sliceArray(swipe.start until swipe.end)
+                 val decodedTracks = withContext(Dispatchers.Default) {
+                     AudioDecoder.decode(swipeData)
+                 }
+                 _uiState.update { it.copy(potentialTracks = decodedTracks) }
+             }
+        }
     }
 
     fun createTrimmedWavFile(context: Context) {
@@ -269,7 +296,7 @@ class ParseViewModel : ViewModel() {
             }
 
             if (dataChunkSize == 0) {
-                 // fallback for non-standard wav files
+                 // fallback for non-standard wav files or if logic above fails to find chunk
                 val bytes = inputStream.readBytes()
                 val shorts = ShortArray(bytes.size / 2)
                 ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
