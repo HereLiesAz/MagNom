@@ -31,7 +31,7 @@ class TransmissionInterfaceViewModel(
     private val cardId: String
 ) : AndroidViewModel(application) {
 
-    private val cardRepository = CardRepository(application) // Using default BackupManager
+    private val cardRepository = CardRepository(application, BackupManager(application))
     private var bleServiceCollectionJob: Job? = null
     private val trackDataGenerator = TrackDataGenerator()
 
