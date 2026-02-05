@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // Using default BackupManager via default constructor logic or simpler instantiation
-    private val cardRepository = CardRepository(application)
+    private val cardRepository = CardRepository(application, BackupManager(application))
     private val _cardProfiles = MutableStateFlow<List<CardProfile>>(emptyList())
     val cardProfiles: StateFlow<List<CardProfile>> = _cardProfiles.asStateFlow()
 
