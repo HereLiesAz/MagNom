@@ -1,5 +1,11 @@
 package com.hereliesaz.magnom.logic
 
+/**
+ * Generates formatted magnetic stripe track strings.
+ *
+ * This class handles the construction of ISO 7811 compliant strings for Track 1 and Track 2,
+ * including the addition of start/end sentinels, field separators, and the LRC character.
+ */
 class TrackDataGenerator {
 
     /**

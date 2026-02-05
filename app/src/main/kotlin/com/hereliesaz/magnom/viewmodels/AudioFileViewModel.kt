@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
+/**
+ * UI State for Audio File processing.
+ */
 data class AudioFileUiState(
     val selectedFileUri: Uri? = null,
     val swipes: List<Swipe> = emptyList(),
@@ -21,6 +24,12 @@ data class AudioFileUiState(
     val trimmedFilePath: String? = null
 )
 
+/**
+ * ViewModel for loading and analyzing audio files.
+ *
+ * (Note: This logic is partially duplicated in ParseViewModel, which seems to be the newer/combined implementation.
+ * Maintaining this for backward compatibility or separation of concerns if used.)
+ */
 class AudioFileViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(AudioFileUiState())
@@ -56,12 +65,10 @@ class AudioFileViewModel : ViewModel() {
 
     fun onZcrThresholdChange(threshold: Double) {
         _uiState.value = _uiState.value.copy(zcrThreshold = threshold)
-        // Note: You might want to re-parse the audio file here
     }
 
     fun onWindowSizeChange(size: Int) {
         _uiState.value = _uiState.value.copy(windowSize = size)
-        // Note: You might want to re-parse the audio file here
     }
 
     fun onSwipeSelected(swipe: Swipe) {

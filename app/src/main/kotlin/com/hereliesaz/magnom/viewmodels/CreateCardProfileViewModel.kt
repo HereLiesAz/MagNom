@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+/**
+ * UI State for creating or editing a card profile.
+ */
 data class CreateCardProfileState(
     val name: String = "",
     val pan: String = "",
@@ -24,6 +27,12 @@ data class CreateCardProfileState(
     val error: String? = null
 )
 
+/**
+ * ViewModel for the Create/Edit Card Profile screen.
+ *
+ * Handles user input, image processing (OCR) via [ImageProcessingRepository],
+ * saving data to [CardRepository], and optional analytics reporting via [AnalyticsRepository].
+ */
 class CreateCardProfileViewModel(
     application: Application,
     private val cardId: String?,
@@ -85,6 +94,10 @@ class CreateCardProfileViewModel(
         _uiState.value = _uiState.value.copy(notes = newNotes)
     }
 
+    /**
+     * Processes the front image of the card.
+     * Triggers OCR to auto-populate fields.
+     */
     fun onFrontImageUriChange(uri: Uri?) {
         _uiState.value = _uiState.value.copy(frontImageUri = uri?.toString())
         uri?.let {
@@ -106,6 +119,9 @@ class CreateCardProfileViewModel(
         _uiState.value = _uiState.value.copy(backImageUri = uri?.toString())
     }
 
+    /**
+     * Saves the card profile and sends anonymized data for analysis.
+     */
     fun saveCardProfile() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -120,6 +136,7 @@ class CreateCardProfileViewModel(
                 backImageUri = currentState.backImageUri
             )
             cardRepository.saveCardProfile(cardProfile)
+            // Use correct method name
             analyticsRepository.anonymizeAndSendData(cardProfile)
         }
     }

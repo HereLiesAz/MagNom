@@ -29,6 +29,9 @@ import kotlin.math.sqrt
 
 data class Swipe(val start: Int, val end: Int)
 
+/**
+ * UI State for the Parse Screen.
+ */
 data class ParseScreenState(
     val isPlaying: Boolean = false,
     val waveformData: List<Float>? = null,
@@ -50,6 +53,11 @@ data class ParseScreenState(
     val potentialTracks: List<String> = emptyList() // Added: List of decoded tracks
 )
 
+/**
+ * ViewModel for the Parse Screen.
+ *
+ * Handles audio file loading, waveform generation, audio recording, and F2F decoding.
+ */
 class ParseViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ParseScreenState())
     val uiState: StateFlow<ParseScreenState> = _uiState
@@ -68,6 +76,9 @@ class ParseViewModel : ViewModel() {
         _uiState.update { it.copy(panOffset = pan) }
     }
 
+    /**
+     * Loads and processes a selected audio file (WAV).
+     */
     fun onFileSelected(context: Context, uri: Uri) {
         viewModelScope.launch {
             _uiState.update { it.copy(selectedFileUri = uri, errorMessage = null, audioData = shortArrayOf(), waveformData = null, swipes = emptyList(), potentialTracks = emptyList()) }

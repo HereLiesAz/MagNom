@@ -12,6 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.vector.ImageVector
 
+/**
+ * A reusable icon button that displays a popup dialog with information when clicked.
+ *
+ * @param infoText The text content to display in the dialog.
+ * @param icon The icon to display (defaults to the standard Info icon).
+ */
 @Composable
 fun InfoIcon(
     infoText: String,

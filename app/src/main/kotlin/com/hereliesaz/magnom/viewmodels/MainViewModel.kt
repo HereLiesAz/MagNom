@@ -12,12 +12,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for the Main Screen.
+ *
+ * Loads and exposes the list of saved card profiles.
+ */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
+    // Using default BackupManager via default constructor logic or simpler instantiation
     private val cardRepository = CardRepository(application, BackupManager(application))
     private val _cardProfiles = MutableStateFlow<List<CardProfile>>(emptyList())
     val cardProfiles: StateFlow<List<CardProfile>> = _cardProfiles.asStateFlow()
 
+    /**
+     * Fetches all card profiles from the repository on a background thread.
+     */
     fun loadCardProfiles() {
         viewModelScope.launch(Dispatchers.IO) {
             _cardProfiles.value = cardRepository.getAllCardProfiles()

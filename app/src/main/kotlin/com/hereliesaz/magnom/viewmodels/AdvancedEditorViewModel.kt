@@ -11,6 +11,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+/**
+ * ViewModel for the Advanced Editor Screen.
+ *
+ * Allows detailed modification of a Card Profile.
+ */
 class AdvancedEditorViewModel(
     private val cardRepository: CardRepository,
     private val cardId: String?

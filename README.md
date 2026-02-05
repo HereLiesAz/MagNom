@@ -2,6 +2,10 @@
 
 MagNom is an Android application designed to serve as a comprehensive tool for researchers, developers, and hobbyists working with magnetic stripe card technology. It provides a user-friendly interface for creating, managing, and securely storing magnetic stripe card profiles. The application is designed to interface with custom hardware peripherals via Bluetooth Low Energy (BLE) to perform magnetic stripe emulation.
 
+## Documentation
+
+For detailed information about the project's architecture, business logic, and usage, please refer to the **[Documentation Library](docs/INDEX.md)**.
+
 ## Current Status
 
 The project is currently in the **alpha development stage**. The core infrastructure and several key features of the Android application have been implemented.

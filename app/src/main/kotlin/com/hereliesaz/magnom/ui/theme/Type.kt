@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.hereliesaz.magnom.R
 
+// Load the custom Public Pixel font (pixel art style)
 val PublicPixel = FontFamily(
     Font(R.font.public_pixel)
 )

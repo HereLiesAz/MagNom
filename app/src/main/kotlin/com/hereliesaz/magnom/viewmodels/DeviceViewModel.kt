@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * UI State for the Device Management screen.
+ */
 data class DeviceUiState(
     val usbDevices: List<UsbDevice> = emptyList(),
     val connectedDevice: UsbDevice? = null,
@@ -28,6 +31,12 @@ data class DeviceUiState(
     val errorMessage: String? = null
 )
 
+/**
+ * ViewModel for managing hardware devices (primarily USB).
+ *
+ * Handles USB permission requests, device enumeration, and connection management
+ * via interaction with [UsbCommunicationService].
+ */
 class DeviceViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(DeviceUiState())
@@ -36,6 +45,7 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
     private var usbService: UsbCommunicationService? = null
     private val ACTION_USB_PERMISSION = "com.hereliesaz.magnom.USB_PERMISSION"
 
+    // BroadcastReceiver to handle USB permission results
     private val usbPermissionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (ACTION_USB_PERMISSION == intent.action) {
@@ -56,6 +66,7 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     init {
+        // Register receiver for USB permissions
         val filter = IntentFilter(ACTION_USB_PERMISSION)
         ContextCompat.registerReceiver(
             getApplication(),
@@ -70,6 +81,9 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
         getApplication<Application>().unregisterReceiver(usbPermissionReceiver)
     }
 
+    /**
+     * Called when the [UsbCommunicationService] is bound.
+     */
     fun onServiceConnected(service: UsbCommunicationService) {
         usbService = service
         refreshUsbDevices()
@@ -84,10 +98,16 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
         usbService = null
     }
 
+    /**
+     * Refreshes the list of available USB devices.
+     */
     fun refreshUsbDevices() {
         _uiState.update { it.copy(usbDevices = usbService?.getAvailableDevices() ?: emptyList()) }
     }
 
+    /**
+     * Initiates connection to a USB device.
+     */
     fun connectToDevice(device: UsbDevice) {
         val permissionIntent = PendingIntent.getBroadcast(
             getApplication(),
@@ -110,10 +130,17 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /**
+     * Sends formatted commands to the connected USB device.
+     */
     fun sendSpoofCommands(track1: String, track2: String) {
-        val track1Formatted = track1.replace('&', '^').replace('-', '/')
-        val track2Formatted = track2.replace('ñ', ';').replace('¿', '=')
+        // Sanitize input to prevent command injection via newlines
+        val sanitizedTrack1 = track1.replace("\n", "").replace("\r", "")
+        val sanitizedTrack2 = track2.replace("\n", "").replace("\r", "")
 
+        // Format strings for MagSpoof (replace chars with appropriate delimiters if needed)
+        val track1Formatted = sanitizedTrack1.replace('&', '^').replace('-', '/')
+        val track2Formatted = sanitizedTrack2.replace('ñ', ';').replace('¿', '=')
         if (track1Formatted.isNotEmpty()) {
             usbService?.sendCommand("T1:$track1Formatted")
         }

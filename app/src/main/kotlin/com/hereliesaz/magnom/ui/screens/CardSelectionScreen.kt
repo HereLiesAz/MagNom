@@ -21,6 +21,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.viewmodels.MainViewModel
 
+/**
+ * Screen for selecting a card from the list.
+ *
+ * Used as a modal/dialog during workflows like Magspoof Replay to pick which card to transmit.
+ *
+ * @param onCardSelected Callback invoked with the ID of the selected card.
+ */
 @Composable
 fun CardSelectionScreen(
     navController: NavController,

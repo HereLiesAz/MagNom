@@ -17,6 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hereliesaz.magnom.viewmodels.BruteforceViewModel
 
+/**
+ * Screen for the Bruteforce tool.
+ *
+ * Demonstrates a simple recursive string generation algorithm.
+ */
 @Composable
 fun BruteforceScreen(bruteforceViewModel: BruteforceViewModel = viewModel()) {
     val uiState by bruteforceViewModel.uiState.collectAsState()
@@ -29,18 +34,21 @@ fun BruteforceScreen(bruteforceViewModel: BruteforceViewModel = viewModel()) {
         horizontalAlignment = Alignment.End
     ) {
         Text(text = "Bruteforce", style = androidx.compose.material3.MaterialTheme.typography.headlineMedium)
+
         TextField(
             value = uiState.target,
             onValueChange = bruteforceViewModel::onTargetChange,
             label = { Text("Target") },
             textStyle = MaterialTheme.typography.bodySmall
         )
+
         TextField(
             value = uiState.charset,
             onValueChange = bruteforceViewModel::onCharsetChange,
             label = { Text("Character Set") },
             textStyle = MaterialTheme.typography.bodySmall
         )
+
         Button(
             onClick = {
                 if (uiState.isRunning) {
@@ -52,6 +60,7 @@ fun BruteforceScreen(bruteforceViewModel: BruteforceViewModel = viewModel()) {
         ) {
             Text(if (uiState.isRunning) "Stop" else "Start", style = MaterialTheme.typography.bodySmall)
         }
+
         Text(text = "Current Attempt: ${uiState.currentAttempt}", style = MaterialTheme.typography.bodySmall)
     }
 }

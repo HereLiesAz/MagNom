@@ -49,11 +49,17 @@ import com.hereliesaz.magnom.ui.screens.TransmissionInterfaceScreen
 import com.hereliesaz.magnom.ui.theme.MagNomTheme
 import com.hereliesaz.magnom.viewmodels.ParseViewModel
 
+/**
+ * The main activity of the application.
+ *
+ * It hosts the navigation graph and manages the connection to the [UsbCommunicationService].
+ */
 class MainActivity : ComponentActivity() {
 
     private lateinit var usbCommunicationService: UsbCommunicationService
     private var isUsbServiceBound = false
 
+    // Connection object to manage the binding to UsbCommunicationService
     private val usbServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             usbCommunicationService = (service as UsbCommunicationService.UsbBinder).getService()
@@ -67,7 +73,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge() // Enable edge-to-edge drawing for a modern look
+
         setContent {
             MagNomTheme {
                 Surface(
@@ -75,14 +82,18 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    // Create ParseViewModel here to share it between ParseScreen and SwipeSelectionScreen
                     val parseViewModel: ParseViewModel = viewModel()
                     val deviceRepository = remember { DeviceRepository() }
 
                     Column(modifier = Modifier.fillMaxSize()) {
+                        // Handle status bar insets
                         Spacer(Modifier.windowInsetsTopHeight(WindowInsets.statusBars))
 
                         Row(modifier = Modifier.weight(1f)) {
                             val navBackStackEntry by navController.currentBackStackEntryAsState()
+
+                            // Side navigation rail provided by AzNavRail library
                             AzNavRail {
                                 azRailItem(id = "main",
                                     text = "Main",
@@ -104,10 +115,10 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("editor/null")
                                 }
                                 azRailItem(id = "advanced_editor", text = "Advanced", screenTitle = "Advanced Editor",
-                                shape = AzButtonShape.NONE
+                                    shape = AzButtonShape.NONE
                                 ) {
-                                navController.navigate(Screen.AdvancedEditor.createRoute(null))
-                            }
+                                    navController.navigate(Screen.AdvancedEditor.createRoute(null))
+                                }
                                 azRailItem(
                                     id = "magspoof_replay",
                                     text = "Replay",
@@ -116,10 +127,10 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.MagspoofReplay.route)
                                 }
                                 azRailItem(id = "bruteforce", text = "Brute", screenTitle = "Bruteforce",
-                                shape = AzButtonShape.NONE
+                                    shape = AzButtonShape.NONE
                                 ) {
-                                navController.navigate(Screen.Bruteforce.route)
-                            }
+                                    navController.navigate(Screen.Bruteforce.route)
+                                }
 
                                 azRailItem(id = "devices", text = "Devices",
                                     shape = AzButtonShape.NONE
@@ -131,17 +142,20 @@ class MainActivity : ComponentActivity() {
                                 azRailItem(id = "help", text = "Help",
                                     shape = AzButtonShape.NONE
                                 ) {
+                                    // Pass current route to Help screen for context-aware help
                                     val currentRoute = navBackStackEntry?.destination?.route
                                     if (currentRoute != null) {
                                         navController.navigate(Screen.Help.createRoute(currentRoute))
                                     }
                                 }
                                 azRailItem(id = "settings", text = "Settings", screenTitle = "Settings",
-                                shape = AzButtonShape.NONE
+                                    shape = AzButtonShape.NONE
                                 ) {
-                                navController.navigate(Screen.Settings.route)
+                                    navController.navigate(Screen.Settings.route)
+                                }
                             }
-                            }
+
+                            // Main Navigation Host
                             NavHost(
                                 navController = navController,
                                 startDestination = Screen.Main.route
@@ -153,6 +167,7 @@ class MainActivity : ComponentActivity() {
                                     CardSelectionScreen(
                                         navController = navController,
                                         onCardSelected = { cardId ->
+                                            // Pass selected card ID back via savedStateHandle
                                             navController.previousBackStackEntry
                                                 ?.savedStateHandle
                                                 ?.set("selectedCardId", cardId)
@@ -226,6 +241,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
+                        // Handle navigation bar insets
                         Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
                     }
                 }
@@ -235,6 +251,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        // Bind to the USB service when the activity starts
         Intent(this, UsbCommunicationService::class.java).also { intent ->
             bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
         }
@@ -242,6 +259,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        // Unbind from the USB service when the activity stops
         if (isUsbServiceBound) {
             unbindService(usbServiceConnection)
             isUsbServiceBound = false

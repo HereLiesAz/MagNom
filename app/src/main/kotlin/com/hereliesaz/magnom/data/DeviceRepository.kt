@@ -1,7 +1,19 @@
 package com.hereliesaz.magnom.data
 
+/**
+ * Repository for managing supported hardware devices.
+ *
+ * This repository provides a catalog of compatible magnetic stripe emulation hardware.
+ * Currently, it serves a static list of devices, but it could be extended to fetch
+ * dynamic lists from a remote server or local configuration.
+ */
 class DeviceRepository {
 
+    /**
+     * Retrieves the list of supported devices.
+     *
+     * @return A list of [Device] objects, each representing a supported hardware peripheral.
+     */
     fun getDevices(): List<Device> {
         return listOf(
             Device(

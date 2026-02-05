@@ -26,6 +26,12 @@ import com.hereliesaz.magnom.services.UsbCommunicationService
 import com.hereliesaz.magnom.viewmodels.TransmissionInterfaceViewModel
 import com.hereliesaz.magnom.viewmodels.TransmissionInterfaceViewModelFactory
 
+/**
+ * Screen for initiating the magnetic emulation transmission.
+ *
+ * Displays the selected card and provides a prominent "Transmit" button.
+ * Shows status feedback from the connected device.
+ */
 @Composable
 fun TransmissionInterfaceScreen(
     navController: NavController,
@@ -57,6 +63,7 @@ fun TransmissionInterfaceScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Card: ${it.name}", style = MaterialTheme.typography.bodyLarge)
             Spacer(modifier = Modifier.height(32.dp))
+
             Button(
                 onClick = { viewModel.transmit() },
                 enabled = !isTransmitting
@@ -64,6 +71,8 @@ fun TransmissionInterfaceScreen(
                 Text("Transmit", style = MaterialTheme.typography.bodySmall)
             }
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Status Feedback
             when (transmissionStatus) {
                 "Transmitting..." -> CircularProgressIndicator()
                 "Transmission successful!" -> Text(

@@ -1,50 +1,70 @@
 package com.hereliesaz.magnom.ui.screens
 
+import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.hardware.usb.UsbDevice
 import android.os.IBinder
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hereliesaz.magnom.services.ConnectionState
 import com.hereliesaz.magnom.services.UsbCommunicationService
 import com.hereliesaz.magnom.viewmodels.DeviceViewModel
 
+/**
+ * Screen for managing hardware devices.
+ *
+ * Primarily focused on USB device discovery and connection.
+ * Allows sending raw spoof commands for testing.
+ */
 @Composable
-fun DeviceScreen(deviceViewModel: DeviceViewModel = viewModel()) {
-    val uiState by deviceViewModel.uiState.collectAsState()
+fun DeviceScreen() {
     val context = LocalContext.current
+    val deviceViewModel: DeviceViewModel = viewModel()
+    val uiState by deviceViewModel.uiState.collectAsState()
 
-    val usbServiceConnection = remember {
-        object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                val binder = service as UsbCommunicationService.UsbBinder
-                deviceViewModel.onServiceConnected(binder.getService())
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                deviceViewModel.onServiceDisconnected()
-            }
+    // USB Service Binding
+    val usbServiceConnection = remember { object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as UsbCommunicationService.UsbBinder
+            deviceViewModel.onServiceConnected(binder.getService())
         }
-    }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            deviceViewModel.onServiceDisconnected()
+        }
+    } }
 
     DisposableEffect(Unit) {
         val intent = Intent(context, UsbCommunicationService::class.java)
         context.bindService(intent, usbServiceConnection, Context.BIND_AUTO_CREATE)
-
         onDispose {
             context.unbindService(usbServiceConnection)
         }

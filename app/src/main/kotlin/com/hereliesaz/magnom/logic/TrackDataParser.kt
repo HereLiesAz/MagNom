@@ -1,11 +1,17 @@
 package com.hereliesaz.magnom.logic
 
+/**
+ * Data class representing the components of a magnetic stripe track.
+ */
 data class ParsedTrack2Data(
     val pan: String,
     val expirationDate: String,
     val serviceCode: String
 )
 
+/**
+ * Parses raw magnetic stripe track strings into structured data.
+ */
 class TrackDataParser {
 
     /**

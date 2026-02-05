@@ -46,6 +46,13 @@ import com.hereliesaz.magnom.services.BleCommunicationService
 import com.hereliesaz.magnom.viewmodels.SettingsViewModel
 import com.hereliesaz.magnom.viewmodels.SettingsViewModelFactory
 
+/**
+ * Screen for application settings.
+ *
+ * Allows configuration of:
+ * - Bluetooth Low Energy (BLE) peripheral connection.
+ * - Data backup and restore (password protected).
+ */
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +66,7 @@ fun SettingsScreen(
         factory = SettingsViewModelFactory(settingsRepository, backupManager)
     )
 
+    // BLE Service Binding Logic
     var bleService by remember { mutableStateOf<BleCommunicationService?>(null) }
     val serviceConnection = remember { object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -87,6 +95,7 @@ fun SettingsScreen(
     val backupPassword by viewModel.backupPassword.collectAsState()
     val backupUri by viewModel.backupUri.collectAsState()
 
+    // File pickers for backup location and restore file
     val backupLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/zip")
     ) { uri ->
@@ -117,6 +126,7 @@ fun SettingsScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            // BLE Controls
             Row {
                 Button(onClick = { viewModel.startScan() }, enabled = bleService != null) {
                     Text("Start Scan")
@@ -138,6 +148,8 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            // Backup Controls
             OutlinedTextField(
                 value = backupPassword,
                 onValueChange = { viewModel.setBackupPassword(it) },
