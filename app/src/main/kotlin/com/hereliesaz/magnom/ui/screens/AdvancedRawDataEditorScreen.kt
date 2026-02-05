@@ -18,6 +18,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.hereliesaz.magnom.viewmodels.AdvancedRawDataEditorViewModel
 
+/**
+ * Screen for advanced raw data editing.
+ *
+ * Allows users to manually input or modify the raw string data for Track 1 and Track 2.
+ * It provides real-time feedback on the validity of the input strings.
+ */
 @Composable
 fun AdvancedRawDataEditorScreen(navController: NavController, viewModel: AdvancedRawDataEditorViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
@@ -29,12 +35,15 @@ fun AdvancedRawDataEditorScreen(navController: NavController, viewModel: Advance
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.End
     ) {
+        // Track 1 Input
         TextField(
             value = uiState.rawTrack1,
             onValueChange = viewModel::onTrack1Change,
             label = { Text("Raw Track 1 Data") },
             textStyle = MaterialTheme.typography.bodySmall
         )
+
+        // Track 2 Input
         TextField(
             value = uiState.rawTrack2,
             onValueChange = viewModel::onTrack2Change,
@@ -43,6 +52,7 @@ fun AdvancedRawDataEditorScreen(navController: NavController, viewModel: Advance
             isError = !uiState.isTrack2Valid
         )
 
+        // Validation Feedback
         if (uiState.isTrack2Valid && uiState.parsedTrack2Data != null) {
             Text("Parsed Track 2 Data:", style = MaterialTheme.typography.bodySmall)
             Text("PAN: ${uiState.parsedTrack2Data?.pan}", style = MaterialTheme.typography.bodySmall)

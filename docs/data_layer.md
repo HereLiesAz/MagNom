@@ -1,6 +1,40 @@
 ## Data Layer
 
-The data layer is responsible for handling all application data, ensuring that it is managed securely and efficiently.
+The data layer is responsible for handling all application data, ensuring that it is managed securely, efficiently, and consistently.
 
-*   **Repository:** The repository is the single source of truth for the application's data. It abstracts the origins of the data, whether from a local encrypted database, secure preferences, or a remote server. It provides a clean API for the ViewModel to fetch and save card profiles.
-*   **Secure Storage:** The storage of magnetic stripe data, particularly for financial cards, is a significant security responsibility. Plaintext storage is unacceptable. The application must use Android's Jetpack Security library, which provides a robust and easy-to-use abstraction over the hardware-backed Android Keystore system. This allows for the creation of encrypted files and encrypted SharedPreferences. All card profiles must be stored in an encrypted format, with the encryption keys managed securely by the Android Keystore, making them difficult to extract even from a rooted device.
+### Repositories
+
+The application uses the Repository pattern to abstract data sources from the UI and logic layers.
+
+*   **`CardRepository`**
+    *   **Purpose:** The primary repository for managing user-created `CardProfile` objects.
+    *   **Storage:** Uses **EncryptedSharedPreferences** (via Android Jetpack Security) to store card data. Each card is serialized (likely to JSON) and stored securely.
+    *   **Functionality:** Provides CRUD (Create, Read, Update, Delete) operations for cards.
+
+*   **`SettingsRepository`**
+    *   **Purpose:** Manages application-wide settings such as "Ethical Use" acceptance, default preferences, and theme choices.
+    *   **Storage:** Uses a separate `SharedPreferences` instance (potentially encrypted or standard, depending on sensitivity).
+
+*   **`DeviceRepository`**
+    *   **Purpose:** Manages the list of known or paired hardware devices (BLE and USB).
+    *   **Functionality:** persists known device addresses or identifiers to allow for auto-reconnection.
+
+*   **`AnalyticsRepository`**
+    *   **Purpose:** Collects and transmits **anonymized** data to a backend server for research purposes (e.g., character set usage, track lengths).
+    *   **Privacy:** Strips all PII (Personally Identifiable Information) like PANs and Names before transmission.
+    *   **Endpoint:** Configurable, supports local debug servers.
+
+*   **`ImageProcessingRepository`**
+    *   **Purpose:** specialized repository for handling OCR (Optical Character Recognition) tasks.
+    *   **Implementation:** Wraps Google ML Kit's Text Recognition to parse card numbers and names from images.
+
+### Backup & Restore
+
+*   **`BackupManager`**
+    *   **Purpose:** Handles the export and import of application data.
+    *   **Security:** Creates **password-protected ZIP archives** (using `zip4j`) containing the application's shared preferences files. This ensures that backups are just as secure as the on-device storage.
+
+### Data Models
+
+*   **`CardProfile`**: The core data class representing a magnetic stripe card. Contains fields for `track1`, `track2`, `pan`, `expirationDate`, `name`, etc.
+*   **`AnonymizedCardProfile`**: A safe version of `CardProfile` used for analytics, containing only structural metadata.

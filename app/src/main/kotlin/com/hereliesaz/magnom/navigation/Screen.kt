@@ -1,5 +1,8 @@
 package com.hereliesaz.magnom.navigation
 
+/**
+ * Sealed class defining the screens and navigation routes in the application.
+ */
 sealed class Screen(val route: String) {
     object Main : Screen("main")
     object Parse : Screen("parse/{cardId}") {

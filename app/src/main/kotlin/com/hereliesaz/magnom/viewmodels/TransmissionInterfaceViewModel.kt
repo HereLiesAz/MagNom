@@ -19,6 +19,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 
+/**
+ * ViewModel for the Transmission Interface screen.
+ *
+ * Coordinates data transmission between the repository and the communication services (BLE/USB).
+ */
 class TransmissionInterfaceViewModel(
     application: Application,
     private val deviceRepository: DeviceRepository,
@@ -26,6 +31,7 @@ class TransmissionInterfaceViewModel(
     private val cardId: String
 ) : AndroidViewModel(application) {
 
+    // Instantiate BackupManager and pass it to CardRepository
     private val cardRepository = CardRepository(application, BackupManager(application))
     private var bleServiceCollectionJob: Job? = null
     private val trackDataGenerator = TrackDataGenerator()
