@@ -7,84 +7,83 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.text.style.TextAlign
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.hereliesaz.magnom.ui.components.EthicalUseDialog
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.viewmodels.MainViewModel
 
+/**
+ * The Main Screen of the application.
+ *
+ * Displays the list of saved card profiles.
+ * Provides entry points for creating new cards and managing existing ones.
+ */
 @Composable
-fun MainScreen(navController: NavController, mainViewModel: MainViewModel = viewModel()) {
-    val cardProfiles by mainViewModel.cardProfiles.collectAsState()
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val showDialog = remember { mutableStateOf(true) }
+fun MainScreen(
+    navController: NavController,
+    viewModel: MainViewModel = viewModel()
+) {
+    val cardProfiles by viewModel.cardProfiles.collectAsState()
 
-    if (showDialog.value) {
-        EthicalUseDialog(onDismiss = { showDialog.value = false })
-    }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                mainViewModel.loadCardProfiles()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+    // Reload data when the screen appears
+    LaunchedEffect(Unit) {
+        viewModel.loadCardProfiles()
     }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate(Screen.Editor.createRoute(null)) }) {
-                Text("+", style = MaterialTheme.typography.bodySmall)
+            FloatingActionButton(onClick = { navController.navigate("editor/null") }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Card")
             }
         }
-    ) { padding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.End
         ) {
-            if (cardProfiles.isEmpty()) {
-                Text(
-                    text = "No card profiles saved. \n Click the '+' button to add one.",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            } else {
-                LazyColumn {
-                    items(cardProfiles) { profile ->
-                        ListItem(
-                            headlineContent = { Text(profile.name, style = MaterialTheme.typography.bodySmall) },
-                            modifier = Modifier.clickable {
-                                navController.navigate(Screen.Transmission.createRoute(profile.id))
+            Text("Saved Profiles", style = MaterialTheme.typography.headlineSmall)
+            LazyColumn {
+                items(cardProfiles) { profile ->
+                    ListItem(
+                        headlineContent = { Text(profile.name, style = MaterialTheme.typography.bodyLarge) },
+                        supportingContent = { Text(profile.pan, style = MaterialTheme.typography.bodySmall) },
+                        modifier = Modifier.clickable {
+                            navController.navigate(Screen.Editor.createRoute(profile.id))
+                        },
+                        trailingContent = {
+                            Column {
+                                IconButton(onClick = { navController.navigate(Screen.Transmission.createRoute(profile.id)) }) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = "Transmit")
+                                }
                             }
-                        )
-                        HorizontalDivider()
-                    }
+                        }
+                    )
+                    HorizontalDivider()
                 }
             }
         }

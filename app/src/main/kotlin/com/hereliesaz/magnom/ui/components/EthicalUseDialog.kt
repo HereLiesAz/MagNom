@@ -9,6 +9,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.hereliesaz.magnom.data.SettingsRepository
 
+/**
+ * Displays a mandatory ethical use disclaimer dialog on app launch if the user hasn't agreed.
+ *
+ * @param onDismiss Callback invoked when the user dismisses the dialog (by agreeing or cancelling).
+ */
 @Composable
 fun EthicalUseDialog(onDismiss: () -> Unit) {
     val openDialog = remember { mutableStateOf(true) }

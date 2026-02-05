@@ -5,20 +5,30 @@ import com.hereliesaz.magnom.logic.BinaryDecoder
 
 /**
  * Decodes magnetic stripe audio data (F2F) into binary strings.
- * Implements logic similar to RhombusLib.
+ *
+ * This object implements the logic to convert analog audio waveforms (F2F encoded)
+ * into digital bits by detecting flux transitions (peaks) and measuring the
+ * intervals between them (Aiken Biphase).
  */
 object AudioDecoder {
 
     /**
-     * Decodes the audio data.
-     * @param audioData The raw audio samples.
-     * @return A list of potential track strings found.
+     * Decodes the audio data into potential track strings.
+     *
+     * Attempts to decode the signal in both forward and reverse directions to
+     * account for the physical swipe direction.
+     *
+     * @param audioData The raw PCM audio samples.
+     * @return A list of valid track strings found (e.g., Track 1 or Track 2 data).
      */
     fun decode(audioData: ShortArray): List<String> {
-        // Try raw audio first
+        // First, try to extract bits from the raw audio data
         var bits = extractBits(audioData)
 
-        // If minimal bits found, try differentiating (for square waves)
+        // If we found very few bits (likely just noise or square wave issues),
+        // try calculating the derivative of the signal.
+        // Differentiating turns square waves into spikes (peaks), which works better
+        // with the peak detection algorithm.
         if (bits.size < 10) {
             val derivative = differentiate(audioData)
             bits = extractBits(derivative)
@@ -26,40 +36,46 @@ object AudioDecoder {
 
         if (bits.isEmpty()) return emptyList()
 
+        // Convert the list of bits (0s and 1s) into a string
         val bitString = bits.joinToString("")
         val results = mutableListOf<String>()
 
-        // Try decoding forward
+        // Try decoding the bit string as is (Forward swipe)
         try {
             results.add(BinaryDecoder.decode(bitString))
         } catch (e: Exception) {
-            // Ignore failure
+            // Ignore decoding failures
         }
 
-        // Try decoding reverse
+        // Try decoding the bit string in reverse (Reverse swipe)
+        // Since F2F is self-clocking, we can just reverse the bit stream
         try {
             results.add(BinaryDecoder.decode(bitString.reversed()))
         } catch (e: Exception) {
-            // Ignore failure
+            // Ignore decoding failures
         }
 
+        // Return unique results only
         return results.distinct()
     }
 
+    /**
+     * Calculates the discrete derivative of the audio signal.
+     *
+     * Used to convert square-wave-like signals (from digital generation) into
+     * peak-like signals (flux transitions) suitable for detection.
+     *
+     * @param audio Input audio array.
+     * @return Differentiated audio array.
+     */
     private fun differentiate(audio: ShortArray): ShortArray {
         if (audio.isEmpty()) return ShortArray(0)
         val diff = ShortArray(audio.size)
-        // Simple difference: y[n] = x[n] - x[n-1]
-        // Note: Result might exceed Short range if step is large (e.g. -32768 to 32767).
-        // Square wave jump is ~65000.
-        // We saturate or just wrap? Peak detection only needs relative magnitude.
-        // Wrapping might invert peak direction.
-        // Better to cast to Int, diff, then clamp or scale?
-        // Let's scale by 0.5 to fit Short.
 
         var prev = audio[0].toInt()
         for (i in 1 until audio.size) {
             val curr = audio[i].toInt()
+            // Calculate difference and scale/clamp to fit Short range
             val d = (curr - prev) / 2
             diff[i] = d.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
             prev = curr
@@ -68,41 +84,46 @@ object AudioDecoder {
     }
 
     /**
-     * F2F Decoding:
-     * 1. Find peaks (flux transitions).
-     * 2. Calculate distances between peaks.
-     * 3. Classify distances as Short (1) or Long (0).
+     * Core F2F Decoding Logic.
+     *
+     * 1. Finds peaks (flux transitions) in the waveform.
+     * 2. Calculates distances (intervals) between peaks.
+     * 3. Classifies intervals as Short (1) or Long (0) based on adaptive thresholding.
+     *
+     * @param audio The audio waveform.
+     * @return A list of bits (0 or 1).
      */
     private fun extractBits(audio: ShortArray): List<Int> {
         val peaks = findPeaks(audio)
+        // Need at least a few peaks to form bits
         if (peaks.size < 10) return emptyList()
 
         val intervals = mutableListOf<Int>()
         for (i in 0 until peaks.size - 1) {
+            // Interval is the distance in samples between consecutive peaks
             intervals.add(peaks[i+1] - peaks[i])
         }
 
         if (intervals.isEmpty()) return emptyList()
 
-        // Calculate average interval to distinguish 0 and 1
-        // Preamble usually consists of '0's (Long intervals).
-        // We look for a sequence of intervals with low variance.
-
+        // Synchronization: Look for a sequence of '0's (Long intervals) which typically
+        // form the preamble (clocking zeros) of a magnetic stripe.
         var threshold = 0.0
         var foundSync = false
         var startIndex = 0
 
-        // Try to find sync in first 50 intervals
+        // Limit search to first 50 intervals for efficiency
         val searchLimit = intervals.size.coerceAtMost(50)
         for (i in 0 until searchLimit - 5) {
             val window = intervals.subList(i, i + 5)
             val avg = window.average()
+            // Calculate variance to check for consistency
             val variance = window.sumOf { (it - avg) * (it - avg) } / 5.0
 
-            // If variance is low relative to average (e.g. < 10% deviation)
-            // 10% of 20 samples = 2. Variance < 4.
-            // Let's say std dev < 0.2 * avg. Variance < 0.04 * avg^2.
+            // If variance is low (intervals are consistent), we found the preamble
             if (variance < 0.04 * avg * avg) {
+                // Set initial threshold. 0s are Long intervals (T). 1s are Short (T/2).
+                // Threshold set at 0.75 * T determines the cutoff.
                 threshold = avg * 0.75
                 startIndex = i
                 foundSync = true
@@ -110,7 +131,7 @@ object AudioDecoder {
             }
         }
 
-        // Fallback if no sync found (e.g. very clean generated data without jitter but maybe short?)
+        // Fallback: If no sync pattern found, just guess based on the start
         if (!foundSync) {
              threshold = intervals.take(10).average() * 0.75
         }
@@ -118,32 +139,32 @@ object AudioDecoder {
         val bits = mutableListOf<Int>()
         var i = startIndex
 
-        // Skip the preamble 0s? No, decode them.
-
         while (i < intervals.size) {
             val interval = intervals[i]
 
-            // Check if it's a '1' (Short interval)
+            // Compare interval to threshold
             if (interval < threshold) {
-                // Must have a second short interval
+                // Short interval detected. In F2F, a '1' is encoded as two short intervals
+                // within one bit period. So we expect another short interval immediately.
                 if (i + 1 < intervals.size) {
                     val next = intervals[i+1]
-                    // Ideally check if 'next' is also short ( < threshold)
-                    // If next is Long, we have a sync error (Short followed by Long).
-                    // But adaptive logic might handle it.
+                    // (Ideally we should check if 'next' is also short, but we assume validity for now)
 
                     bits.add(1)
-                    i += 2
-                    // Update threshold: (interval + next) is roughly one bit duration (T)
+                    i += 2 // Consumed two intervals
+
+                    // Update adaptive threshold based on the full bit period (sum of two shorts)
                     threshold = (interval + next) * 0.75
                 } else {
+                    // Running out of data mid-bit
                     break
                 }
             } else {
-                // It's a '0' (Long interval)
+                // Long interval detected. Represents a '0'.
                 bits.add(0)
-                i += 1
-                // Update threshold: interval is roughly T
+                i += 1 // Consumed one interval
+
+                // Update adaptive threshold based on this interval
                 threshold = interval * 0.75
             }
         }
@@ -151,29 +172,28 @@ object AudioDecoder {
         return bits
     }
 
+    /**
+     * Finds local peaks (maxima and minima) in the audio signal.
+     *
+     * @param audio The audio waveform.
+     * @return A list of indices where peaks occur.
+     */
     private fun findPeaks(audio: ShortArray): List<Int> {
         val peaks = mutableListOf<Int>()
 
-        // First, normalize or establish a noise floor
+        // Establish a noise floor to ignore silence
         val maxAmp = audio.maxOfOrNull { abs(it.toInt()) } ?: 0
         val noiseFloor = maxAmp * 0.1
 
-        var lastPeakIndex = 0
         var lookingForPositive = true
 
-        // Initial search direction:
-        // If we start negative, look for positive peak first.
-        // If we start positive, look for negative peak?
-        // Standard F2F has alternating flux.
-
-        // Scan for first significant sample to determine phase
+        // Determine initial phase: scan for first significant sample
         for (i in 0 until audio.size) {
             if (audio[i] > noiseFloor) {
-                 lookingForPositive = true // Found positive, so next peak is positive max?
-                 // Wait, if we are climbing, we are looking for the top.
+                 lookingForPositive = true // Found positive value, looking for positive peak
                  break
             } else if (audio[i] < -noiseFloor) {
-                 lookingForPositive = false
+                 lookingForPositive = false // Found negative value, looking for negative peak
                  break
             }
         }
@@ -183,27 +203,20 @@ object AudioDecoder {
             val curr = audio[i]
             val next = audio[i+1]
 
+            // Skip low-amplitude noise
             if (abs(curr.toInt()) < noiseFloor) continue
 
             if (lookingForPositive) {
-                // Local max
+                // Check for local maximum
                 if (curr >= prev && curr >= next && curr > 0) {
-                     // Check if it's really a peak or just a plateau?
-                     // Simple check: > prev and >= next
-
-                     // De-bounce: ensure we moved far enough from last peak?
-                     // F2F peaks are separated.
-
                     peaks.add(i)
-                    lastPeakIndex = i
-                    lookingForPositive = false
+                    lookingForPositive = false // Switch to looking for negative peak
                 }
             } else {
-                // Local min
+                // Check for local minimum
                 if (curr <= prev && curr <= next && curr < 0) {
                     peaks.add(i)
-                    lastPeakIndex = i
-                    lookingForPositive = true
+                    lookingForPositive = true // Switch to looking for positive peak
                 }
             }
         }

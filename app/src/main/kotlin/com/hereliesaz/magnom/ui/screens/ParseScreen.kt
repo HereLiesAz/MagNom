@@ -1,6 +1,7 @@
 package com.hereliesaz.magnom.ui.screens
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -15,9 +16,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,6 +46,16 @@ import androidx.navigation.NavController
 import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.viewmodels.ParseViewModel
 
+/**
+ * Screen for audio analysis and parsing.
+ *
+ * Features:
+ * - Waveform visualization with zoom and pan.
+ * - Audio playback.
+ * - Audio recording.
+ * - File selection.
+ * - Visualization of decoded bits/characters under the waveform.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ParseScreen(
@@ -56,6 +67,7 @@ fun ParseScreen(
     val context = LocalContext.current
 
     if (cardId != null) {
+        // Detailed View Mode (When a card/file is loaded)
         val textMeasurer = rememberTextMeasurer()
 
         Column(
@@ -67,6 +79,7 @@ fun ParseScreen(
                 Text(if (uiState.isPlaying) "Stop" else "Play", style = MaterialTheme.typography.bodySmall)
             }
 
+            // Interactive Waveform Canvas
             uiState.waveformData?.let { data ->
                 Canvas(modifier = Modifier
                     .fillMaxSize()
@@ -87,6 +100,7 @@ fun ParseScreen(
                     val start = (uiState.panOffset / step).toInt().coerceIn(0, data.size)
                     val end = (start + (size.width / step).toInt()).coerceIn(0, data.size)
 
+                    // Draw audio waveform
                     for (i in start until end - 1) {
                         drawLine(
                             color = Color.Black,
@@ -95,8 +109,9 @@ fun ParseScreen(
                         )
                     }
 
+                    // Draw decoded characters aligned with waveform (simplified visualization)
                     val trackData = uiState.trackData ?: ""
-                    val charStep = step * 5 // 5 bits per character for Track 2
+                    val charStep = step * 5 // Approx 5 bits per character for Track 2 visual alignment
                     for (i in trackData.indices) {
                         drawText(
                             textMeasurer = textMeasurer,
@@ -109,6 +124,7 @@ fun ParseScreen(
             }
         }
     } else {
+        // Initial Selection Mode (File or Record)
         var expanded by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
@@ -119,13 +135,7 @@ fun ParseScreen(
             contract = ActivityResultContracts.RequestPermission(),
             onResult = { isGranted: Boolean ->
                 if (isGranted) {
-                    // Permission is granted. Continue the action or workflow in your app.
-                } else {
-                    // Explain to the user that the feature is unavailable because the
-                    // feature requires a permission that the user has denied. At the
-                    // same time, respect the user's decision. Don't link to system
-                    // settings in an effort to convince the user to change their
-                    // decision.
+                    // Permission granted
                 }
             }
         )
@@ -167,6 +177,8 @@ fun ParseScreen(
             uiState.errorMessage?.let {
                 Text(text = it, style = MaterialTheme.typography.bodySmall)
             }
+
+            // Real-time recording visualization (simplified)
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -191,6 +203,8 @@ fun ParseScreen(
                     )
                 }
             }
+
+            // Audio Device Selector
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = {
@@ -226,6 +240,8 @@ fun ParseScreen(
                     }
                 }
             }
+
+            // Record Button
             Button(onClick = {
                 when (ContextCompat.checkSelfPermission(
                     context,
@@ -245,6 +261,7 @@ fun ParseScreen(
             }) {
                 Text(if (uiState.isRecording) "Stop Recording" else "Start Recording", style = MaterialTheme.typography.bodySmall)
             }
+
             uiState.savedFilePath?.let {
                 Text("Recording saved to: $it", style = MaterialTheme.typography.bodySmall)
                 Button(onClick = {

@@ -22,9 +22,16 @@ import com.google.gson.Gson
 import com.hereliesaz.magnom.navigation.Screen
 import com.hereliesaz.magnom.viewmodels.ParseViewModel
 
+/**
+ * Screen for selecting a valid magnetic swipe from a parsed audio file.
+ *
+ * Displays a list of detected swipes (regions with high magnetic flux activity).
+ * Allows the user to select one for creating a new card profile or saving as a trimmed WAV.
+ */
 @Composable
 fun SwipeSelectionScreen(
     navController: NavController,
+    // Shares the same ParseViewModel instance as the ParseScreen via navigation graph scoping or hoisting
     parseViewModel: ParseViewModel = viewModel()
 ) {
     val uiState by parseViewModel.uiState.collectAsState()
@@ -38,18 +45,24 @@ fun SwipeSelectionScreen(
         uiState.errorMessage?.let {
             Text(text = it, style = MaterialTheme.typography.bodySmall)
         }
+
+        // ZCR Threshold control for tuning detection sensitivity
         Text(text = "ZCR Threshold: ${uiState.zcrThreshold}", style = MaterialTheme.typography.bodySmall)
         Slider(
             value = uiState.zcrThreshold.toFloat(),
             onValueChange = { parseViewModel.onZcrThresholdChange(it.toDouble()) },
             valueRange = 0f..1f
         )
+
+        // Window Size control for ZCR analysis
         Text(text = "Window Size: ${uiState.windowSize}", style = MaterialTheme.typography.bodySmall)
         Slider(
             value = uiState.windowSize.toFloat(),
             onValueChange = { parseViewModel.onWindowSizeChange(it.toInt()) },
             valueRange = 256f..4096f
         )
+
+        // List of detected swipes
         LazyColumn {
             items(uiState.swipes) { swipe ->
                 Text(
@@ -59,10 +72,13 @@ fun SwipeSelectionScreen(
                 )
             }
         }
+
+        // Create Profile Action
         Button(
             onClick = {
                 uiState.selectedSwipe?.let {
                     val swipeJson = Gson().toJson(it)
+                    // Pass swipe data to the creation screen
                     navController.navigate(Screen.CreateCardProfile.createRoute(swipeJson))
                 }
             },
@@ -70,6 +86,8 @@ fun SwipeSelectionScreen(
         ) {
             Text("Create New Profile", style = MaterialTheme.typography.bodySmall)
         }
+
+        // Trim Audio Action
         Button(
             onClick = {
                 parseViewModel.createTrimmedWavFile(context)
@@ -78,6 +96,7 @@ fun SwipeSelectionScreen(
         ) {
             Text("Create Trimmed Clip", style = MaterialTheme.typography.bodySmall)
         }
+
         uiState.trimmedFilePath?.let {
             Text("Trimmed file saved to: $it", style = MaterialTheme.typography.bodySmall)
         }

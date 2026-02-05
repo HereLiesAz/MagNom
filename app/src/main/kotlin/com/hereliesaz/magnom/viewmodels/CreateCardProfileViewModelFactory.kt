@@ -14,6 +14,11 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
+/**
+ * Factory for creating [CreateCardProfileViewModel] instances.
+ *
+ * Handles dependency injection manually.
+ */
 class CreateCardProfileViewModelFactory(
     private val application: Application,
     private val cardId: String?,
@@ -21,10 +26,13 @@ class CreateCardProfileViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CreateCardProfileViewModel::class.java)) {
             val settingsRepository = SettingsRepository(application)
+            // Use BackupManager defaults
             val cardRepository = cardId?.let {
-                CardRepository(application, BackupManager(application))
-            } ?: CardRepository(application, BackupManager(application))
+                CardRepository(application)
+            } ?: CardRepository(application)
+
             val imageProcessingRepository = ImageProcessingRepository(application)
+
             val ktorClient = HttpClient(CIO) {
                 install(ContentNegotiation) {
                     json(Json {
@@ -32,7 +40,9 @@ class CreateCardProfileViewModelFactory(
                     })
                 }
             }
+            // Pass required dependencies to AnalyticsRepository
             val analyticsRepository = AnalyticsRepository(settingsRepository, ktorClient)
+
             @Suppress("UNCHECKED_CAST")
             return CreateCardProfileViewModel(
                 application,

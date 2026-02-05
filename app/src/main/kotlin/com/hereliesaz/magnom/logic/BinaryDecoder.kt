@@ -1,5 +1,11 @@
 package com.hereliesaz.magnom.logic
 
+/**
+ * Low-level utility to decode binary data (bit strings) into ASCII characters.
+ *
+ * It handles the 5-bit (ABA) and 7-bit (IATA) character encodings used on magnetic stripes,
+ * including parity checking and LRC validation.
+ */
 object BinaryDecoder {
 
     /**

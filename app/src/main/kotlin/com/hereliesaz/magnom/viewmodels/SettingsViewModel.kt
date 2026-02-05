@@ -16,6 +16,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for the Settings screen.
+ *
+ * Manages backup/restore operations and BLE device configuration.
+ */
 @SuppressLint("MissingPermission")
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
@@ -83,6 +88,7 @@ class SettingsViewModel(
             val password = backupPassword.value
             val uri = backupUri.value
             if (password.isNotEmpty() && uri != null) {
+                // Pass URI as string to BackupManager (createBackup takes String)
                 backupManager.createBackup(password, uri.toString())
             }
         }
@@ -93,6 +99,7 @@ class SettingsViewModel(
             val password = backupPassword.value
             val uri = backupUri.value
             if (password.isNotEmpty() && uri != null) {
+                // Pass URI object to BackupManager (restoreBackup updated to take Uri)
                 backupManager.restoreBackup(password, uri)
             }
         }

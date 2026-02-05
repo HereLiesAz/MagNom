@@ -44,6 +44,11 @@ import com.hereliesaz.magnom.viewmodels.MagspoofReplayViewModel
 import com.hereliesaz.magnom.viewmodels.MagspoofReplayViewModelFactory
 import androidx.compose.runtime.LaunchedEffect
 
+/**
+ * Screen for testing magnetic emulation by replaying saved card data.
+ *
+ * Allows connection to a BLE peripheral and triggering of track transmission.
+ */
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +61,7 @@ fun MagspoofReplayScreen(
         factory = MagspoofReplayViewModelFactory(cardRepository)
     )
 
+    // BLE Service Binding
     var bleService by remember { mutableStateOf<BleCommunicationService?>(null) }
     val serviceConnection = remember { object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -83,6 +89,7 @@ fun MagspoofReplayScreen(
     val connectionState by viewModel.connectionState.collectAsState()
     val transmissionStatus by viewModel.transmissionStatus.collectAsState()
 
+    // Handle card selection from other screens
     val selectedCardId = navController.currentBackStackEntry
         ?.savedStateHandle
         ?.getStateFlow<String?>("selectedCardId", null)
@@ -122,6 +129,8 @@ fun MagspoofReplayScreen(
             Text("Connection State: $connectionState")
             Text("Transmission Status: $transmissionStatus")
             Text("Selected Card: ${viewModel.selectedCard.collectAsState().value?.name ?: "None"}")
+
+            // Device List
             LazyColumn {
                 items(discoveredDevices) { device ->
                     Text(
@@ -133,9 +142,12 @@ fun MagspoofReplayScreen(
                     )
                 }
             }
+
             Button(onClick = { navController.navigate(Screen.CardSelection.route) }) {
                 Text("Select Card")
             }
+
+            // Transmit Action
             Button(
                 onClick = {
                     viewModel.selectedCard.value?.let {

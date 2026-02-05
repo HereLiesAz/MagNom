@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModelProvider
 import com.hereliesaz.magnom.data.DeviceRepository
 import com.hereliesaz.magnom.services.UsbCommunicationService
 
+/**
+ * Factory for creating [TransmissionInterfaceViewModel] instances.
+ */
 class TransmissionInterfaceViewModelFactory(
     private val application: Application,
     private val deviceRepository: DeviceRepository,

@@ -30,6 +30,11 @@ import com.hereliesaz.magnom.data.CardRepository
 import com.hereliesaz.magnom.viewmodels.AdvancedEditorViewModel
 import com.hereliesaz.magnom.viewmodels.AdvancedEditorViewModelFactory
 
+/**
+ * Screen for advanced card editing.
+ *
+ * Provides a low-level interface to modify all fields of a [CardProfile] directly.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedEditorScreen(

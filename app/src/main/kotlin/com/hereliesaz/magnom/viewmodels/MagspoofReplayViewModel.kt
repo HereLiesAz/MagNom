@@ -15,6 +15,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for the MagSpoof Replay screen.
+ *
+ * Facilitates the connection to a BLE peripheral and the transmission of
+ * track data for emulation.
+ */
 @SuppressLint("MissingPermission")
 class MagspoofReplayViewModel(
     private val cardRepository: CardRepository
@@ -34,6 +40,9 @@ class MagspoofReplayViewModel(
     private val _selectedCard = MutableStateFlow<CardProfile?>(null)
     val selectedCard: StateFlow<CardProfile?> = _selectedCard.asStateFlow()
 
+    /**
+     * Binds the BLE service to the ViewModel.
+     */
     fun setBleCommunicationService(service: BleCommunicationService) {
         bleCommunicationService = service
         viewModelScope.launch {
