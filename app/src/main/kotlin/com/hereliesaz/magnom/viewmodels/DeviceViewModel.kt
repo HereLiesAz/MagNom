@@ -134,10 +134,13 @@ class DeviceViewModel(application: Application) : AndroidViewModel(application) 
      * Sends formatted commands to the connected USB device.
      */
     fun sendSpoofCommands(track1: String, track2: String) {
-        // Format strings for MagSpoof (replace chars with appropriate delimiters if needed)
-        val track1Formatted = track1.replace('&', '^').replace('-', '/')
-        val track2Formatted = track2.replace('ñ', ';').replace('¿', '=')
+        // Sanitize input to prevent command injection via newlines
+        val sanitizedTrack1 = track1.replace("\n", "").replace("\r", "")
+        val sanitizedTrack2 = track2.replace("\n", "").replace("\r", "")
 
+        // Format strings for MagSpoof (replace chars with appropriate delimiters if needed)
+        val track1Formatted = sanitizedTrack1.replace('&', '^').replace('-', '/')
+        val track2Formatted = sanitizedTrack2.replace('ñ', ';').replace('¿', '=')
         if (track1Formatted.isNotEmpty()) {
             usbService?.sendCommand("T1:$track1Formatted")
         }
