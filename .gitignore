@@ -36,3 +36,4 @@ google-services.json
 /app/release/baselineProfiles/1/app-release.dm
 
 .ideaz/
+.kotlin/
