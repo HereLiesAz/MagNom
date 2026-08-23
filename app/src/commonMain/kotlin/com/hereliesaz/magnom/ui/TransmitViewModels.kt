@@ -3,6 +3,8 @@ package com.hereliesaz.magnom.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hereliesaz.magnom.domain.Card
+import com.hereliesaz.magnom.domain.Backups
+import com.hereliesaz.magnom.domain.BackupInfo
 import com.hereliesaz.magnom.domain.CardRepository
 import com.hereliesaz.magnom.domain.SettingsRepository
 import com.hereliesaz.magnom.domain.TransmitResult
@@ -66,17 +68,47 @@ class TransmitViewModel(
     }
 }
 
-/** Settings: consent, app-lock, and transport availability. */
+/** Settings: consent, app-lock, transport availability, and encrypted backups. */
 class SettingsViewModel(
     val settings: SettingsRepository,
     private val transmitters: List<Transmitter>,
+    private val backups: Backups,
 ) : ViewModel() {
     val appLockEnabled: StateFlow<Boolean> = settings.appLockEnabled
     val consentAccepted: StateFlow<Boolean> = settings.consentAccepted
+
+    private val _backupList = MutableStateFlow(backups.list())
+    val backupList: StateFlow<List<BackupInfo>> = _backupList.asStateFlow()
+
+    private val _backupMessage = MutableStateFlow<String?>(null)
+    val backupMessage: StateFlow<String?> = _backupMessage.asStateFlow()
 
     fun setAppLock(enabled: Boolean) = settings.setAppLockEnabled(enabled)
     fun setConsent(accepted: Boolean) = settings.setConsentAccepted(accepted)
 
     fun transports(): List<Pair<TransportKind, Boolean>> =
         transmitters.map { it.kind to it.isAvailable() }
+
+    fun createBackup(password: String) {
+        viewModelScope.launch {
+            backups.create(password).fold(
+                onSuccess = { _backupMessage.value = "Backup created: $it"; _backupList.value = backups.list() },
+                onFailure = { _backupMessage.value = "Backup failed: ${it.message}" },
+            )
+        }
+    }
+
+    fun restoreBackup(name: String, password: String) {
+        viewModelScope.launch {
+            backups.restore(name, password).fold(
+                onSuccess = { _backupMessage.value = "Restored $it card(s)" },
+                onFailure = { _backupMessage.value = "Restore failed (wrong password?)" },
+            )
+        }
+    }
+
+    fun deleteBackup(name: String) {
+        viewModelScope.launch { backups.delete(name); _backupList.value = backups.list() }
+    }
+
 }

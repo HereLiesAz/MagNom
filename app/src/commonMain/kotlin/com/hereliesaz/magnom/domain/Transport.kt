@@ -3,7 +3,7 @@ package com.hereliesaz.magnom.domain
 import kotlinx.coroutines.flow.StateFlow
 
 /** The physical channel a [Transmitter] drives. */
-enum class TransportKind { AUDIO, BLE, USB }
+enum class TransportKind { AUDIO, BLUETOOTH, USB }
 
 /** Lifecycle of a transmitter. */
 enum class TransportStatus { UNAVAILABLE, READY, CONNECTING, CONNECTED, TRANSMITTING }

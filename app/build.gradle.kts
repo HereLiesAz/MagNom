@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
@@ -37,6 +39,11 @@ kotlin {
     sourceSets {
         val desktopMain by getting
 
+        // Shared JVM code for Android + desktop (java.io / javax.crypto backup engine).
+        val jvmShared by creating { dependsOn(commonMain.get()) }
+        androidMain.get().dependsOn(jvmShared)
+        desktopMain.dependsOn(jvmShared)
+
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -70,6 +77,14 @@ kotlin {
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
+            implementation(compose.uiTest)
+        }
+
+        val desktopTest by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(compose.desktop.uiTestJUnit4)
+            }
         }
     }
 }

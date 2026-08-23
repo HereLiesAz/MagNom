@@ -25,7 +25,7 @@ fun ConsentGate(onAccept: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("MagNom", style = MaterialTheme.typography.headlineSmall)
-        Text("Research &amp; developer tool", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text("Research & developer tool", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         Text(
             "MagNom is for analysing and emulating magnetic stripe data on cards you own or are " +
                 "authorised to use, for research and development. Using it to capture, clone, or use " +

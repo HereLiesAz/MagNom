@@ -34,5 +34,5 @@ val appModule = module {
     viewModel { CardEditorViewModel(get()) }
     viewModel { RawAnalyzerViewModel(get()) }
     viewModel { TransmitViewModel(getAll(), get()) }
-    viewModel { SettingsViewModel(get(), getAll()) }
+    viewModel { SettingsViewModel(get(), getAll(), get()) }
 }
