@@ -1,78 +1,80 @@
 # MagNom
 
-MagNom is an Android application designed to serve as a comprehensive tool for researchers, developers, and hobbyists working with magnetic stripe card technology. It provides a user-friendly interface for creating, managing, and securely storing magnetic stripe card profiles. The application is designed to interface with custom hardware peripherals via Bluetooth Low Energy (BLE) to perform magnetic stripe emulation.
+MagNom is a **Kotlin Multiplatform / Compose Multiplatform** research and developer tool for
+analysing, generating, and emulating magnetic stripe data. It runs as an **Android** app and a
+**desktop** (JVM) app from one shared codebase, and drives magstripe-emulation hardware over
+Bluetooth Low Energy, USB serial, or an F2F audio waveform.
 
-## Documentation
+This is the ground-up re-envisioning of the project against its original goals: the phone (or
+desktop) is the host "brain"; a strictly separated, pure-Kotlin core owns all the logical layer
+(track formatting, LRC, F2F); the UI stays focused on two tasks — manage cards and emulate one;
+and all data stays encrypted, on-device.
 
-For detailed information about the project's architecture, business logic, and usage, please refer to the **[Documentation Library](docs/INDEX.md)**.
+## Architecture
 
-## Current Status
+```
+commonMain
+  core/      Pure ISO/IEC 7811/7813 logic — LRC, TrackCodec, F2F, WAV, SwipeDecoder (no platform deps)
+  domain/    Card (invariant: cannot exist without valid tracks), repositories, Transmitter
+  data/      Encrypted, typed store (kotlinx.serialization over an expect SecureStore)
+  transport/ AudioTransmitter (F2F over the audio output) + expect AudioSink
+  ui/        Compose Multiplatform: 5 screens, theme, ViewModels
+  di/        Koin graph
+androidMain  EncryptedSharedPreferences store, AudioTrack sink, BLE + USB transmitters,
+             biometric app-lock + FLAG_SECURE, Koin/Android entry points
+desktopMain  AES-GCM file store, javax.sound sink, desktop entry point
+```
 
-The project is currently in the **alpha development stage**. The core infrastructure and several key features of the Android application have been implemented.
+### Why this shape
 
-### Implemented Features:
+The core logic is the crown jewel, so it lives in `commonMain` with **zero platform
+dependencies** and is verified by `commonTest` against hand-derived ISO vectors — not against
+itself. Platform capabilities (secure storage, audio output, BLE/USB, biometrics) are
+`expect`/`actual` or Koin-provided, so the shared code never reaches for an Android API directly.
 
-*   **Application Architecture:**
-    *   Modern MVVM (Model-View-ViewModel) architecture.
-    *   UI built with Jetpack Compose.
-    *   Type-safe navigation using Jetpack Navigation.
-*   **Card Profile Management:**
-    *   Create and edit card profiles (name, PAN, expiration, service code).
-    *   Securely store card profiles on-device using `EncryptedSharedPreferences` from the Jetpack Security library.
-    *   View a list of all saved card profiles.
-*   **Magnetic Stripe Logic:**
-    *   Business logic for generating valid Track 1 and Track 2 magnetic stripe data strings.
-    *   Correct calculation of the Longitudinal Redundancy Check (LRC).
-*   **User Interface:**
-    *   User feedback on transmission status.
-*   **Bluetooth Low Energy (BLE) Communication:**
-    *   A foreground service to manage BLE operations.
-    *   Scanning for and discovering nearby BLE peripherals.
-    *   Connecting to a selected peripheral and managing the connection state.
-    *   A reliable queuing mechanism for writing data to the peripheral's characteristics.
-    *   Functions to transmit track data and send emulation commands.
-*   **Waveform Visualization:**
-    *   Display the waveform of the magnetic stripe data.
-    *   Allow zooming and panning of the waveform.
-    *   Display the corresponding characters under the waveform.
-    *   Allow the user to play the sound of the waveform.
-*   **Audio Processing:**
-    *   Allow the user to load an audio file and parse it for magnetic stripe swipe data.
-    *   Identify and extract all swipes in the file.
-    *   Allow the user to record audio from within the app.
-    *   Provide options to select the recording device.
-    *   Create a trimmed audio clip for each swipe.
-*   **Backup and Restore:**
-    *   Allow the user to back up all their data to a password-protected file.
-    *   Allow the user to restore their data from a backup file.
-*   **Smart Background Checks Integration:**
-    *   Add a button to take the user to smartbackgroundchecks.com.
-    *   Automatically populate the search fields with the name on the card.
-*   **Gemini Deep Research Integration:**
-    *   Add a button to take the user to Gemini Deep Research.
-*   **Card Photo Scanning:**
-    *   Implement card photo scanning as part of the card profile creation process.
-    *   Save front and back images of the card.
-    *   Automatically parse text from the images to populate the appropriate fields.
-*   **Notes Section:**
-    *   Add a notes section to each card profile.
-    *   Allow users to add multiple notes of any size.
-*   **Immediate Save:**
-    *   All changes in the app are immediately saved upon being made.
-*   **In-App Help:**
-    *   Add info icons to all UI elements to provide popup dialogs with information.
-    *   Add a "Help" button to the `AzNavRail` that brings up a dialog with detailed instructions for the current screen.
+## Correctness
 
-### Next Steps:
+The `LrcCalculator` in the previous build XORed raw ASCII codes without removing the track base
+offset, producing out-of-range LRC characters for ~87% of real PANs (one of which crashed the
+waveform screen), and the test suite asserted the implementation against itself. The rewrite has
+a single canonical LRC/codec used by every layer, and the tests assert:
 
-The next major phase of development will focus on end-to-end testing with a hardware peripheral.
+- a hand-computed LRC vector (`;12345?` → `5`);
+- that every generated LRC is a legal track character (regression for the crash);
+- Track 1/Track 2 generate → parse round-trips;
+- encode → decode bit round-trips;
+- F2F PCM → `SwipeDecoder` round-trips, forwards **and** reversed;
+- WAV encode/decode round-trips;
+- rejection of tampered LRCs.
 
-### Future Features:
+## Security &amp; conduct
 
-- [x] Predictive Algorithm Data Collection
-- [x] Bruteforce Screen
-- [x] USB Device Support and Device Management Screen
-- [x] In-App Help
-- [x] Provide options to select the recording device (USB, headphone jack, Bluetooth, WiFi).
-- [x] Create a trimmed audio clip for each swipe.
-- [x] Multiple Notes per Card
+- All card data is stored **encrypted at rest** and **never leaves the device** — the network
+  analytics path from the previous build was removed entirely.
+- An optional **biometric / device-credential app-lock** gates the app (Android).
+- `FLAG_SECURE` keeps PANs and card data out of screenshots and the recents thumbnail (Android).
+- A **first-run consent gate** actually blocks the app until acknowledged.
+- Positioned strictly as a research/developer tool; fraud-oriented features are not included.
+
+## Build
+
+Requires JDK 21 and the Android SDK (compileSdk 37).
+
+```bash
+./gradlew :app:desktopTest            # run the core test suite
+./gradlew :app:assembleDebug          # build the Android APK
+./gradlew :app:run                    # run the desktop app
+```
+
+Toolchain: Gradle 9.7.1, AGP 9.3.1, Kotlin 2.3.21, Compose Multiplatform 1.11.1, Koin 4.2.2.
+
+## Status
+
+Alpha. The shared core is complete and tested; the Android and desktop apps build and run. BLE
+and USB transports target a custom MagSpoof-class GATT service / serial line protocol and require
+matching peripheral firmware; the audio (F2F) transport works on any device with audio output.
+
+## Legal
+
+Unauthorised capture or use of another party's card data is illegal. MagNom is for use with cards
+you own or are authorised to use. You are solely responsible for how you use it.
