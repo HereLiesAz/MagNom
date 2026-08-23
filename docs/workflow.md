@@ -1,57 +1,17 @@
 ## Workflow
 
-The project tracks its progress through the following phases:
+The project was re-envisioned from the ground up as a Kotlin Multiplatform / Compose Multiplatform
+app. Phase status:
 
-1.  **Phase 1: Environment and Toolchain Setup:**
-    *   **Status: Done**
-    *   Install the Android development environment.
-    *   Initialize version control.
+1. **Toolchain → KMP + Compose Multiplatform (latest stable):** Done. Gradle 9.7.1, AGP 9.3.1,
+   Kotlin 2.3.21, Compose Multiplatform 1.11.1, JDK 21. Android + desktop targets.
+2. **Shared core (logic layer):** Done. Correct ISO 7811/7813 codec, F2F, swipe decoder, WAV — in
+   `commonMain`, verified by `commonTest` against real vectors.
+3. **Typed encrypted data layer:** Done. `Card` invariant, `SecureStore`, kotlinx.serialization.
+4. **Transports:** Done (audio common; BLE + USB on Android). All go through one `Transmitter`
+   seam that only accepts a validated `Card`.
+5. **UI + security:** Done. Five screens, Koin DI, biometric app-lock, `FLAG_SECURE`, consent gate.
+6. **Hardware end-to-end testing:** Pending physical MagSpoof-class peripheral firmware for the
+   BLE GATT service / USB serial protocol.
 
-2.  **Phase 2: Custom Peripheral Hardware Assembly and Firmware Deployment:**
-    *   **Status: Ongoing (External)**
-    *   Select and prototype the hardware components.
-    *   Develop the BLE stack and GATT server firmware.
-    *   Develop the core emulation logic firmware.
-
-3.  **Phase 3: Android Application Scaffolding and UI Implementation:**
-    *   **Status: Done**
-    *   Create the Android project.
-    *   Define permissions and navigation graph (`AzNavRail`).
-    *   Implement the core UI screens and ViewModels.
-
-4.  **Phase 4: Core Logic and Data Management:**
-    *   **Status: Done**
-    *   Implement magnetic stripe logic (`LrcCalculator`, `TrackDataGenerator`).
-    *   Implement secure storage (`EncryptedSharedPreferences`).
-    *   Implement backup and restore (`BackupManager`).
-
-5.  **Phase 5: Communication Services (BLE & USB):**
-    *   **Status: Done**
-    *   Implement `BleCommunicationService` for wireless peripherals.
-    *   Implement `UsbCommunicationService` for wired serial connections.
-    *   Create unified interfaces for transmission.
-
-6.  **Phase 6: Audio Processing & Analysis Features:**
-    *   **Status: Done**
-    *   Implement `AudioDecoder` (F2F decoding).
-    *   Implement `WaveformDataGenerator` (F2F encoding).
-    *   Create Audio Parsing and Swipe Selection screens.
-    *   Implement Audio Recording functionality.
-
-7.  **Phase 7: Advanced Features:**
-    *   **Status: Done**
-    *   Implement `BruteforceScreen`.
-    *   Implement `MagspoofReplayScreen`.
-    *   Implement OCR (`ImageProcessingRepository`).
-    *   Implement Analytics.
-
-8.  **Phase 8: End-to-End System Testing and Debugging:**
-    *   **Status: In Progress**
-    *   Test with physical hardware.
-    *   Verify edge cases (noise, reverse swipes).
-    *   Refine UI/UX based on usage.
-
-9.  **Phase 9: Production Build and Packaging:**
-    *   **Status: Not Started**
-    *   Finalize the application signing.
-    *   Prepare release builds.
+The historical MagSpoof blueprint and hardware guides in this folder are retained for reference.

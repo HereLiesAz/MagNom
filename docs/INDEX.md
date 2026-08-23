@@ -1,5 +1,10 @@
 # MagNom Documentation Library
 
+> **Note:** MagNom has been re-envisioned as a Kotlin Multiplatform / Compose Multiplatform
+> app (Android + desktop). See the [README](../README.md) for the current architecture. The
+> hardware guides and the original blueprint are retained as historical reference.
+
+
 Welcome to the comprehensive documentation for **MagNom**, an Android application for magnetic stripe analysis, emulation, and research.
 
 ## Table of Contents

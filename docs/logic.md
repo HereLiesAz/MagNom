@@ -1,66 +1,31 @@
-# Core Business Logic
+# Core Logic (`commonMain/core`)
 
-This document details the core business logic components of MagNom, responsible for handling magnetic stripe data, audio processing, and cryptographic operations.
+Pure Kotlin, zero platform dependencies, verified by `commonTest` against hand-derived ISO
+vectors. One canonical implementation of each concern is shared by every layer.
 
-## Magnetic Stripe Data Manipulation
+### `TrackFormat`
+Single source of truth for the ISO/IEC 7811/7813 constants (bits per character, base offset,
+sentinels) for Track 1, 2 and 3.
 
-The application adheres to ISO/IEC 7811 and 7813 standards for magnetic stripe data.
+### `Lrc`
+One Longitudinal Redundancy Check, computed as even column parity over the *data values* of the
+characters from the start sentinel through the end sentinel, re-adding the base offset so the
+result is always a legal track character. This replaces the previous raw-ASCII XOR that produced
+out-of-range control characters for ~87% of PANs and crashed the waveform generator.
 
-### `LrcCalculator`
-**Location:** `app/src/main/kotlin/com/hereliesaz/magnom/logic/LrcCalculator.kt`
+### `TrackCodec`
+Generates and parses Track 1 / Track 2 strings, and converts complete track strings to and from
+the bit stream (LSB-first data bits + odd parity per character). Encode and decode share `Lrc` and
+`TrackFormat`, so a generated string always decodes back to itself.
 
-Calculates the Longitudinal Redundancy Check (LRC) character. The LRC is a validity check byte appended to the end of the track data. It is calculated by XORing all the characters in the data message (excluding the start sentinel but including the end sentinel).
+### `F2f`
+F2F (Aiken biphase) modulation: a bit stream to/from PCM. A `0` is one transition per cell; a `1`
+adds a mid-cell transition.
 
-### `TrackDataGenerator`
-**Location:** `app/src/main/kotlin/com/hereliesaz/magnom/logic/TrackDataGenerator.kt`
+### `SwipeDecoder`
+Recovers a track string from recorded F2F audio: transition detection → adaptive-clock interval
+decoding (a `1` requires a *pair* of short intervals — the fix for the previous "assume validity"
+gap) → `TrackCodec`. Tries both swipe directions and both track formats.
 
-Responsible for formatting raw card data (PAN, Name, Expiration, Service Code) into valid Track 1 and Track 2 strings.
-- **Track 1 (IATA):** Format B, 7-bit encoding (6 data bits + 1 parity).
-  - Format: `%B[PAN]^[NAME]^[EXP][SVC][DISC]?[LRC]`
-- **Track 2 (ABA):** 5-bit encoding (4 data bits + 1 parity).
-  - Format: `;[PAN]=[EXP][SVC][DISC]?[LRC]`
-
-### `TrackDataParser`
-**Location:** `app/src/main/kotlin/com/hereliesaz/magnom/logic/TrackDataParser.kt`
-
-Parses full track strings back into their constituent components (PAN, Name, Expiration, etc.). It handles error checking and validation of sentinels and field separators.
-
-### `BinaryDecoder`
-**Location:** `app/src/main/kotlin/com/hereliesaz/magnom/logic/BinaryDecoder.kt`
-
-A low-level utility that decodes binary strings into ASCII characters based on magnetic stripe encoding standards.
-- Supports 5-bit (Track 2/3) decoding.
-- Supports 7-bit (Track 1) decoding.
-- Validates parity bits for each character.
-
-## Audio Processing (F2F Encoding/Decoding)
-
-MagNom includes a sophisticated audio processing engine to interact with audio-jack based readers and to analyze recorded swipes.
-
-### `AudioDecoder`
-**Location:** `app/src/main/kotlin/com/hereliesaz/magnom/audio/AudioDecoder.kt`
-
-Implements the "Aiken Biphase" (F2F) decoding algorithm.
-- **Peak Detection:** Uses smart peak detection (and derivative-based fallback) to identify flux transitions in the audio waveform.
-- **Bit Extraction:** Measures the distance between peaks to distinguish between '0' (long gap) and '1' (two short gaps).
-- **Direction Agnostic:** Attempts to decode in both forward and reverse directions to handle swipes performed in either direction.
-
-### `WaveformDataGenerator`
-**Location:** `app/src/main/kotlin/com/hereliesaz/magnom/logic/WaveformDataGenerator.kt`
-
-Converts digital track data into an audio waveform (PCM data) using F2F encoding. This allows the phone to "play" the magnetic stripe data into a reader head via the audio jack or a coil.
-- Generates square waves representing the magnetic flux transitions.
-- Supports configurable sample rates and frequencies.
-
-### `AudioPlayer`
-**Location:** `app/src/main/kotlin/com/hereliesaz/magnom/logic/AudioPlayer.kt`
-
-Manages the playback of the generated waveforms using the Android `AudioTrack` API.
-
-## Cryptography and Validation
-
-### `LrcCalculator` (Validation)
-Used not just for generation but also to validate the integrity of parsed or decoded data.
-
-### Security
-While not a single "logic" class, the application uses `EncryptedSharedPreferences` (see Data Layer) to ensure all data handled by these logic classes is stored securely when at rest.
+### `Wav`
+Dependency-free 16-bit PCM mono WAV reader/writer.
