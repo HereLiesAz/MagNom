@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Transmits a card to a wired MagSpoof-class device over USB serial. Sends a simple
- * line protocol: `T1:<track1>`, `T2:<track2>`, `EMU`. Only whole [Card]s are accepted,
+ * MagSpoof line protocol (T1:/T2:/SPOOF). Only whole [Card]s are accepted,
  * so the serial device never receives empty track data.
  */
 class UsbTransmitter(private val context: Context) : Transmitter {
@@ -48,12 +48,10 @@ class UsbTransmitter(private val context: Context) : Transmitter {
         try {
             _status.value = TransportStatus.CONNECTING
             port.open(connection)
-            port.setParameters(BAUD, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
+            port.setParameters(MagSpoofProtocol.BAUD, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
             _target.value = driver.device.deviceName
             _status.value = TransportStatus.TRANSMITTING
-            port.write("T1:${card.track1}\n".encodeToByteArray(), WRITE_TIMEOUT)
-            port.write("T2:${card.track2}\n".encodeToByteArray(), WRITE_TIMEOUT)
-            port.write("EMU\n".encodeToByteArray(), WRITE_TIMEOUT)
+            for (frame in MagSpoofProtocol.commands(card)) port.write(frame, WRITE_TIMEOUT)
             TransmitResult.Success
         } catch (e: Throwable) {
             TransmitResult.Failure(e.message ?: "USB write failed")
@@ -66,7 +64,6 @@ class UsbTransmitter(private val context: Context) : Transmitter {
     override fun release() { _status.value = TransportStatus.READY }
 
     companion object {
-        private const val BAUD = 115_200
         private const val WRITE_TIMEOUT = 2_000
     }
 }

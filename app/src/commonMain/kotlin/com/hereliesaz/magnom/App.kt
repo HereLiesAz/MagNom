@@ -18,6 +18,7 @@ import com.hereliesaz.magnom.ui.SettingsViewModel
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CardListScreen
 import com.hereliesaz.magnom.ui.screens.ConsentGate
+import com.hereliesaz.magnom.ui.screens.HelpScreen
 import com.hereliesaz.magnom.ui.screens.RawAnalyzerScreen
 import com.hereliesaz.magnom.ui.screens.SettingsScreen
 import com.hereliesaz.magnom.ui.screens.TransmitScreen
@@ -32,6 +33,7 @@ sealed interface Route {
     data object Raw : Route
     data class Transmit(val cardId: String) : Route
     data object Settings : Route
+    data object Help : Route
 }
 
 @Composable
@@ -54,7 +56,7 @@ fun App() {
 @Composable
 private fun MainScaffold() {
     var route by remember { mutableStateOf<Route>(Route.List) }
-    val topLevel = route is Route.List || route is Route.Raw || route is Route.Settings
+    val topLevel = route is Route.List || route is Route.Raw || route is Route.Settings || route is Route.Help
 
     Row(Modifier.fillMaxSize()) {
         if (topLevel) {
@@ -77,6 +79,12 @@ private fun MainScaffold() {
                     icon = { Text("⚙") },
                     label = { Text("Settings") },
                 )
+                NavigationRailItem(
+                    selected = route is Route.Help,
+                    onClick = { route = Route.Help },
+                    icon = { Text("?") },
+                    label = { Text("Help") },
+                )
             }
         }
 
@@ -90,6 +98,7 @@ private fun MainScaffold() {
             is Route.Raw -> RawAnalyzerScreen(onDone = { route = Route.List })
             is Route.Transmit -> TransmitScreen(cardId = r.cardId, onBack = { route = Route.List })
             is Route.Settings -> SettingsScreen()
+            is Route.Help -> HelpScreen()
         }
     }
 }
