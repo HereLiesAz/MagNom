@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,12 +31,13 @@ fun RawAnalyzerScreen(onDone: () -> Unit) {
     val vm: RawAnalyzerViewModel = koinViewModel()
     val s by vm.state.collectAsState()
     LaunchedEffect(s.saved) { if (s.saved) onDone() }
+    // Fresh form (and a new card id) for the next visit, so saves never overwrite each other.
+    DisposableEffect(Unit) { onDispose { vm.reset() } }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Raw Data Analyzer", style = MaterialTheme.typography.headlineSmall)
 
         OutlinedTextField(s.label, vm::onLabel, label = { Text("Label") }, singleLine = true, modifier = Modifier.fillMaxWidth())
 

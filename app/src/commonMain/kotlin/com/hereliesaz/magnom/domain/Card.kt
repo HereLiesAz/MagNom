@@ -27,6 +27,15 @@ data class Card private constructor(
     val track2: String,
     val notes: List<String> = emptyList(),
 ) {
+    /**
+     * Whether this instance still satisfies the invariant. Kotlin serialization can build a
+     * Card around the private constructor (stored JSON, a restored backup), so anything that
+     * deserializes cards must filter with this.
+     */
+    fun isConsistent(): Boolean =
+        Lrc.validate(track1, TrackFormat.TRACK1) && Lrc.validate(track2, TrackFormat.TRACK2) &&
+            TrackCodec.parseTrack2(track2)?.pan == pan
+
     companion object {
         /**
          * Build a Card from human-entered fields, generating both tracks. Returns a failure
@@ -41,6 +50,8 @@ data class Card private constructor(
             serviceCode: String,
             notes: List<String> = emptyList(),
         ): Result<Card> = runCatching {
+            // These are Track 1 delimiters; in a name they would corrupt the field layout.
+            require(name.none { it == '^' || it == '%' || it == '?' }) { "Name may not contain ^ % or ?" }
             val track1 = TrackCodec.generateTrack1(pan, name.uppercase(), expiration, serviceCode)
             val track2 = TrackCodec.generateTrack2(pan, expiration, serviceCode)
             Card(id, label.ifBlank { "Card ${pan.takeLast(4)}" }, pan, name, expiration, serviceCode, track1, track2, notes)
@@ -60,12 +71,13 @@ data class Card private constructor(
             require(Lrc.validate(track1, TrackFormat.TRACK1)) { "Track 1 LRC/format invalid" }
             require(Lrc.validate(track2, TrackFormat.TRACK2)) { "Track 2 LRC/format invalid" }
             val t2 = TrackCodec.parseTrack2(track2) ?: error("Track 2 could not be parsed")
-            val t1 = TrackCodec.parseTrack1(track1)
+            val t1 = TrackCodec.parseTrack1(track1) ?: error("Track 1 could not be parsed")
+            require(t1.pan == t2.pan) { "Track 1 and Track 2 carry different card numbers" }
             Card(
                 id = id,
                 label = label.ifBlank { "Card ${t2.pan.takeLast(4)}" },
                 pan = t2.pan,
-                name = t1?.name ?: "",
+                name = t1.name,
                 expiration = t2.expiration,
                 serviceCode = t2.serviceCode,
                 track1 = track1,

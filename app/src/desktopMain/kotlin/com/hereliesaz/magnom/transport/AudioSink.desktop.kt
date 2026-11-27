@@ -20,13 +20,16 @@ actual class AudioSink actual constructor() {
         }
         val l = AudioSystem.getSourceDataLine(format)
         line = l
-        l.open(format)
-        l.start()
-        l.write(bytes, 0, bytes.size)
-        l.drain()
-        l.stop()
-        l.close()
-        line = null
+        try {
+            l.open(format)
+            l.start()
+            l.write(bytes, 0, bytes.size)
+            l.drain()
+            l.stop()
+        } finally {
+            runCatching { l.close() }
+            line = null
+        }
     }
 
     actual fun stop() {

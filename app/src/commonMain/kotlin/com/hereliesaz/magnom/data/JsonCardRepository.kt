@@ -41,12 +41,23 @@ class JsonCardRepository(
         _cards.value = list
     }
 
-    private fun load(): List<Card> =
-        store.readText(KEY)?.let {
-            runCatching { json.decodeFromString(ListSerializer(Card.serializer()), it) }.getOrDefault(emptyList())
-        } ?: emptyList()
+    /**
+     * Loads stored cards. If the stored text can't be parsed, it is copied to [KEY_CORRUPT]
+     * before anything can overwrite it, so a bad read never turns into silent data loss.
+     * Cards that fail [Card.isConsistent] are dropped rather than trusted.
+     */
+    private fun load(): List<Card> {
+        val text = store.readText(KEY) ?: return emptyList()
+        return runCatching { json.decodeFromString(ListSerializer(Card.serializer()), text) }
+            .map { list -> list.filter { it.isConsistent() } }
+            .getOrElse {
+                if (store.readText(KEY_CORRUPT) == null) store.writeText(KEY_CORRUPT, text)
+                emptyList()
+            }
+    }
 
     companion object {
         private const val KEY = "cards.v1"
+        private const val KEY_CORRUPT = "cards.v1.corrupt"
     }
 }

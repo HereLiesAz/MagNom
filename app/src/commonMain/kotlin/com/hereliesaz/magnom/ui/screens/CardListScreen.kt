@@ -35,7 +35,6 @@ fun CardListScreen(
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Text("Card Profiles", style = MaterialTheme.typography.headlineSmall)
             if (cards.isEmpty()) {
                 Text(
                     "No cards yet. Add one, or build tracks in Analyze.",

@@ -6,7 +6,8 @@ data class BackupInfo(val name: String, val sizeBytes: Long)
 /**
  * Password-protected, portable export/import of all cards. Backups are encrypted with a
  * key derived from the user's password (independent of the device key), so a backup file
- * is safe to move off-device and only restorable with the same password.
+ * is only restorable with the same password. Files live in the app's own folder (deleted on
+ * uninstall); there is currently no export or import UI to move them elsewhere.
  */
 interface Backups {
     fun list(): List<BackupInfo>

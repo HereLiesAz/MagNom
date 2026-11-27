@@ -3,7 +3,7 @@
 MagNom is a **Kotlin Multiplatform / Compose Multiplatform** research and developer tool for
 analysing, generating, and emulating magnetic stripe data. It runs as an **Android** app and a
 **desktop** (JVM) app from one shared codebase, and drives magstripe-emulation hardware over
-Bluetooth Low Energy, USB serial, or an F2F audio waveform.
+Bluetooth (classic serial), USB serial, or an F2F audio waveform.
 
 This is the ground-up re-envisioning of the project against its original goals: the phone (or
 desktop) is the host "brain"; a strictly separated, pure-Kotlin core owns all the logical layer
@@ -18,9 +18,9 @@ commonMain
   domain/    Card (invariant: cannot exist without valid tracks), repositories, Transmitter
   data/      Encrypted, typed store (kotlinx.serialization over an expect SecureStore)
   transport/ AudioTransmitter (F2F over the audio output) + expect AudioSink
-  ui/        Compose Multiplatform: 5 screens, theme, ViewModels
+  ui/        Compose Multiplatform: Cards, Editor, Analyzer, Transmit, Settings, Help; theme; ViewModels
   di/        Koin graph
-androidMain  EncryptedSharedPreferences store, AudioTrack sink, BLE + USB transmitters,
+androidMain  EncryptedSharedPreferences store, AudioTrack sink, Bluetooth (SPP) + USB transmitters,
              biometric app-lock + FLAG_SECURE, Koin/Android entry points
 desktopMain  AES-GCM file store, javax.sound sink, desktop entry point
 ```
@@ -29,13 +29,13 @@ desktopMain  AES-GCM file store, javax.sound sink, desktop entry point
 
 The core logic is the crown jewel, so it lives in `commonMain` with **zero platform
 dependencies** and is verified by `commonTest` against hand-derived ISO vectors — not against
-itself. Platform capabilities (secure storage, audio output, BLE/USB, biometrics) are
+itself. Platform capabilities (secure storage, audio output, Bluetooth/USB, biometrics) are
 `expect`/`actual` or Koin-provided, so the shared code never reaches for an Android API directly.
 
 ## Correctness
 
 The `LrcCalculator` in the previous build XORed raw ASCII codes without removing the track base
-offset, producing out-of-range LRC characters for ~87% of real PANs (one of which crashed the
+offset, producing out-of-range LRC characters for most real PANs (one of which crashed the
 waveform screen), and the test suite asserted the implementation against itself. The rewrite has
 a single canonical LRC/codec used by every layer, and the tests assert:
 
@@ -66,13 +66,19 @@ Requires JDK 21 and the Android SDK (compileSdk 37).
 ./gradlew :app:run                    # run the desktop app
 ```
 
-Toolchain: Gradle 9.7.1, AGP 9.3.1, Kotlin 2.3.21, Compose Multiplatform 1.11.1, Koin 4.2.2.
+Toolchain: Gradle 9.7.1, AGP 9.3.1, Kotlin 2.3.21, Compose Multiplatform 1.11.1, Koin 4.2.2,
+AzNavRail 12.5 (`aznavrail-cmp`, navigation shell).
 
 ## Status
 
-Alpha. The shared core is complete and tested; the Android and desktop apps build and run. BLE
-and USB transports target a custom MagSpoof-class GATT service / serial line protocol and require
-matching peripheral firmware; the audio (F2F) transport works on any device with audio output.
+Alpha. The shared core is complete and tested; the Android and desktop apps build and run. The
+Bluetooth transport is Bluetooth Classic SPP (RFCOMM) to a paired device whose name contains
+`magspoof`, `spoof`, `hc-05` or `hc-06`; USB is CDC-ACM serial. Both speak a proposed line
+protocol (`T1:`/`T2:`/`SPOOF`) that needs matching firmware and has not been verified against
+hardware. The audio (F2F) transport works on any device with audio output.
+
+Not wired up yet: `SwipeDecoder` and `Wav` (decoding a recorded swipe) are tested core code with
+no UI entry point, and backups are stored in the app's own folder with no export or import UI.
 
 ## Legal
 

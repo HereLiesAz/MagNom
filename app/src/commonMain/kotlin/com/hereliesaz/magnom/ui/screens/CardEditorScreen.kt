@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,12 +36,13 @@ fun CardEditorScreen(cardId: String?, onDone: () -> Unit) {
     val s by vm.state.collectAsState()
 
     LaunchedEffect(s.saved) { if (s.saved) onDone() }
+    // Leave a blank form behind so a stale `saved` can never bounce the next visit.
+    DisposableEffect(Unit) { onDispose { vm.reset() } }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(if (cardId == null) "New Card" else "Edit Card", style = MaterialTheme.typography.headlineSmall)
 
         OutlinedTextField(s.label, vm::onLabel, label = { Text("Label") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(
