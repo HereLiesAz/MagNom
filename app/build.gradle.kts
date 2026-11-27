@@ -57,6 +57,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.aznavrail.cmp)
         }
 
         androidMain.dependencies {

@@ -50,7 +50,8 @@ a single canonical LRC/codec used by every layer, and the tests assert:
 ## Security &amp; conduct
 
 - All card data is stored **encrypted at rest** and **never leaves the device** — the network
-  analytics path from the previous build was removed entirely.
+  analytics path from the previous build was removed entirely, and AzNavRail's About /
+  "More from Az" background prefetch is disabled.
 - An optional **biometric / device-credential app-lock** gates the app (Android).
 - `FLAG_SECURE` keeps PANs and card data out of screenshots and the recents thumbnail (Android).
 - A **first-run consent gate** actually blocks the app until acknowledged.
@@ -66,7 +67,8 @@ Requires JDK 21 and the Android SDK (compileSdk 37).
 ./gradlew :app:run                    # run the desktop app
 ```
 
-Toolchain: Gradle 9.7.1, AGP 9.3.1, Kotlin 2.3.21, Compose Multiplatform 1.11.1, Koin 4.2.2.
+Toolchain: Gradle 9.7.1, AGP 9.3.1, Kotlin 2.3.21, Compose Multiplatform 1.11.1, Koin 4.2.2,
+AzNavRail 12.5 (`aznavrail-cmp`, navigation shell).
 
 ## Status
 
