@@ -35,7 +35,6 @@ fun RawAnalyzerScreen(onDone: () -> Unit) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Raw Data Analyzer", style = MaterialTheme.typography.headlineSmall)
 
         OutlinedTextField(s.label, vm::onLabel, label = { Text("Label") }, singleLine = true, modifier = Modifier.fillMaxWidth())
 

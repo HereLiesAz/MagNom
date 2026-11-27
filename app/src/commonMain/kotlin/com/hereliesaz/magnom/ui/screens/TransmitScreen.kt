@@ -34,7 +34,6 @@ fun TransmitScreen(cardId: String, onBack: () -> Unit) {
         Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Transmit", style = MaterialTheme.typography.headlineSmall)
         val card = s.card
         if (card == null) {
             Text("Card not found.", color = MaterialTheme.colorScheme.error)

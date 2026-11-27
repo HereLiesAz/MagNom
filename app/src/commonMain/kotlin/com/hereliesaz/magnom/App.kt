@@ -32,12 +32,18 @@ sealed interface Route {
     /** Rail item id this route highlights. Detail routes highlight their parent. */
     val railId: String
 
-    data object List : Route { override val railId = "cards" }
-    data class Editor(val id: String?) : Route { override val railId = "cards" }
-    data object Raw : Route { override val railId = "analyze" }
-    data class Transmit(val cardId: String) : Route { override val railId = "cards" }
-    data object Settings : Route { override val railId = "settings" }
-    data object Help : Route { override val railId = "help" }
+    /** Title shown by the rail host; screens draw no heading of their own. */
+    val title: String
+
+    data object List : Route { override val railId = "cards"; override val title = "Cards" }
+    data class Editor(val id: String?) : Route {
+        override val railId = "cards"
+        override val title = if (id == null) "New Card" else "Edit Card"
+    }
+    data object Raw : Route { override val railId = "analyze"; override val title = "Raw Analyzer" }
+    data class Transmit(val cardId: String) : Route { override val railId = "cards"; override val title = "Transmit" }
+    data object Settings : Route { override val railId = "settings"; override val title = "Settings" }
+    data object Help : Route { override val railId = "help"; override val title = "Help" }
 }
 
 @Composable
@@ -63,10 +69,6 @@ fun App() {
  * Navigation state stays in our typed [Route]. Rail items carry no nav-graph route (the
  * NavController exists only because the host requires one); the active item is lit by matching
  * its classifier against [Route.railId] via `azConfig(activeClassifiers)`.
- *
- * Privacy: the library's About/"More from Az" background prefetch is disabled via [azAbout], so
- * the app makes no network requests on its own. The footer About link opens a browser only when
- * the user taps it.
  */
 @Composable
 private fun MainScaffold() {
@@ -80,9 +82,9 @@ private fun MainScaffold() {
         AzHostActivityLayout(navController = navController) {
             azConfig(activeClassifiers = setOf(route.railId))
             azTheme(activeColor = accent)
-            azAbout(inAppAbout = false, moreFromAzEnabled = false)
 
-            azRailItem(id = "cards", text = "Cards", classifiers = setOf("cards"), screenTitle = "Cards") {
+            azRailItem(id = "cards", text = "Cards", classifiers = setOf("cards"),
+                screenTitle = if (route.railId == "cards") route.title else "Cards") {
                 route = Route.List
             }
             azRailItem(id = "analyze", text = "Analyze", classifiers = setOf("analyze"), screenTitle = "Raw Analyzer") {

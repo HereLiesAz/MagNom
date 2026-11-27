@@ -40,7 +40,6 @@ fun CardEditorScreen(cardId: String?, onDone: () -> Unit) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(if (cardId == null) "New Card" else "Edit Card", style = MaterialTheme.typography.headlineSmall)
 
         OutlinedTextField(s.label, vm::onLabel, label = { Text("Label") }, singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(

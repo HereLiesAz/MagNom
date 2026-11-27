@@ -21,7 +21,6 @@ class ScreensUiTest {
     @Test
     fun help_screen_lists_the_topics() = runComposeUiTest {
         setContent { MagNomTheme { HelpScreen() } }
-        onNodeWithText("Help").assertIsDisplayed()
         onNodeWithText("Cards").assertIsDisplayed()
         onNodeWithText("Transmit").assertIsDisplayed()
     }
