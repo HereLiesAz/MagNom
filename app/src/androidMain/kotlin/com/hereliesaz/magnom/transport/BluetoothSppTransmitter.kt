@@ -64,7 +64,7 @@ class BluetoothSppTransmitter(private val context: Context) : Transmitter {
         try {
             _status.value = TransportStatus.CONNECTING
             socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-            adapter.cancelDiscovery()
+            // No cancelDiscovery(): the app never scans, and that call needs BLUETOOTH_SCAN on API 31+.
             socket.connect()
             _status.value = TransportStatus.TRANSMITTING
             val out = socket.outputStream
