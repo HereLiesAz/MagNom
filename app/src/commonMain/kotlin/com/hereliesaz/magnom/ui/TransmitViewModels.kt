@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 
 data class TransmitUiState(
     val card: Card? = null,
+    val available: List<TransportKind> = emptyList(),
     val selected: TransportKind? = null,
     val busy: Boolean = false,
     val message: String? = null,
@@ -35,11 +36,11 @@ class TransmitViewModel(
     private val _state = MutableStateFlow(TransmitUiState())
     val state: StateFlow<TransmitUiState> = _state.asStateFlow()
 
-    val available: List<Transmitter> get() = transmitters.filter { it.isAvailable() }
-
+    /** Probe the transports once per load; probing touches USB/Bluetooth, so never per recomposition. */
     fun load(cardId: String) {
         val card = repo.get(cardId)
-        _state.value = TransmitUiState(card = card, selected = available.firstOrNull()?.kind)
+        val kinds = transmitters.filter { it.isAvailable() }.map { it.kind }
+        _state.value = TransmitUiState(card = card, available = kinds, selected = kinds.firstOrNull())
     }
 
     fun select(kind: TransportKind) = _state.update { it.copy(selected = kind, message = null) }
@@ -47,7 +48,7 @@ class TransmitViewModel(
     fun transmit() {
         val s = _state.value
         val card = s.card ?: return
-        val tx = available.firstOrNull { it.kind == s.selected } ?: return
+        val tx = transmitters.firstOrNull { it.kind == s.selected && it.isAvailable() } ?: return
         viewModelScope.launch {
             _state.value = s.copy(busy = true, message = "Transmitting over ${tx.kind}…")
             val result = tx.transmit(card)

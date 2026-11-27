@@ -36,6 +36,8 @@ fun SettingsScreen() {
     val appLock by vm.appLockEnabled.collectAsState()
     val backups by vm.backupList.collectAsState()
     val backupMessage by vm.backupMessage.collectAsState()
+    // Probed once per visit, not on every recomposition (probing touches USB/Bluetooth).
+    val transports = remember { vm.transports() }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -57,7 +59,7 @@ fun SettingsScreen() {
         HorizontalDivider()
 
         Text("Transports", style = MaterialTheme.typography.titleMedium)
-        vm.transports().forEach { (kind, available) ->
+        transports.forEach { (kind, available) ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(kind.name, Modifier.weight(1f), fontFamily = FontFamily.Monospace)
                 Text(

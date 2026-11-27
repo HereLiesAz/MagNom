@@ -8,13 +8,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.hereliesaz.aznavrail.AzAppMeta
 import com.hereliesaz.aznavrail.AzHostActivityLayout
 import com.hereliesaz.aznavrail.LocalAzAppMeta
+import com.hereliesaz.magnom.ui.PlatformBackHandler
 import com.hereliesaz.magnom.ui.SettingsViewModel
 import com.hereliesaz.magnom.ui.screens.CardEditorScreen
 import com.hereliesaz.magnom.ui.screens.CardListScreen
@@ -46,6 +48,30 @@ sealed interface Route {
     data object Help : Route { override val railId = "help"; override val title = "Help" }
 }
 
+/** Survives rotation and process recreation: routes round-trip through a plain string. */
+private val RouteSaver = Saver<Route, String>(
+    save = { r ->
+        when (r) {
+            is Route.List -> "list"
+            is Route.Editor -> "editor:" + (r.id ?: "")
+            is Route.Raw -> "raw"
+            is Route.Transmit -> "transmit:" + r.cardId
+            is Route.Settings -> "settings"
+            is Route.Help -> "help"
+        }
+    },
+    restore = { s ->
+        when {
+            s == "raw" -> Route.Raw
+            s == "settings" -> Route.Settings
+            s == "help" -> Route.Help
+            s.startsWith("editor:") -> Route.Editor(s.removePrefix("editor:").ifEmpty { null })
+            s.startsWith("transmit:") -> Route.Transmit(s.removePrefix("transmit:"))
+            else -> Route.List
+        }
+    },
+)
+
 @Composable
 fun App() {
     MagNomTheme {
@@ -72,7 +98,9 @@ fun App() {
  */
 @Composable
 private fun MainScaffold() {
-    var route by remember { mutableStateOf<Route>(Route.List) }
+    var route by rememberSaveable(stateSaver = RouteSaver) { mutableStateOf<Route>(Route.List) }
+    // Back returns to the card list from any other screen; from the list the system handles it.
+    PlatformBackHandler(enabled = route !is Route.List) { route = Route.List }
     val navController = rememberNavController()
     val accent = MaterialTheme.colorScheme.primary
 

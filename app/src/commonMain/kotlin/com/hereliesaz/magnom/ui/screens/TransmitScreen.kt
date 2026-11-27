@@ -50,15 +50,15 @@ fun TransmitScreen(cardId: String, onBack: () -> Unit) {
         )
 
         Text("Transport", style = MaterialTheme.typography.titleMedium)
-        if (vm.available.isEmpty()) {
+        if (s.available.isEmpty()) {
             Text("No transport available on this device.", color = MaterialTheme.colorScheme.error)
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            vm.available.forEach { tx ->
+            s.available.forEach { kind ->
                 FilterChip(
-                    selected = s.selected == tx.kind,
-                    onClick = { vm.select(tx.kind) },
-                    label = { Text(tx.kind.name) },
+                    selected = s.selected == kind,
+                    onClick = { vm.select(kind) },
+                    label = { Text(kind.name) },
                 )
             }
         }

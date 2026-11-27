@@ -47,6 +47,9 @@ class CardEditorViewModel(private val repo: CardRepository) : ViewModel() {
         }
     }
 
+    /** Back to a blank form. Called when the screen leaves, so a stale `saved` never re-fires. */
+    fun reset() { _state.value = EditorUiState() }
+
     fun onLabel(v: String) = _state.update { it.copy(label = v, error = null) }
     fun onPan(v: String) = _state.update { it.copy(pan = v.filter { c -> c.isDigit() }, error = null) }
     fun onName(v: String) = _state.update { it.copy(name = v, error = null) }
@@ -87,6 +90,9 @@ class RawAnalyzerViewModel(private val repo: CardRepository) : ViewModel() {
     fun onTrack1(v: String) = _state.update { it.copy(track1 = v, track1Valid = Lrc.validate(v, TrackFormat.TRACK1), error = null).withDecoded() }
     fun onTrack2(v: String) = _state.update { it.copy(track2 = v, track2Valid = Lrc.validate(v, TrackFormat.TRACK2), error = null).withDecoded() }
     fun onLabel(v: String) = _state.update { it.copy(label = v) }
+
+    /** Fresh form with a new card id. Called when the screen leaves, so the next entry starts clean. */
+    fun reset() { _state.value = RawUiState(id = newId()) }
 
     private fun RawUiState.withDecoded(): RawUiState {
         val t2 = TrackCodec.parseTrack2(track2)

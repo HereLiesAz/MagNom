@@ -43,17 +43,18 @@ class DefaultBackups(
 
     override suspend fun restore(name: String, password: String): Result<Int> = withContext(Dispatchers.IO) {
         runCatching {
-            val file = File(baseDir, name)
+            val file = File(baseDir, File(name).name)
             require(file.exists()) { "Backup not found" }
             val plain = BackupCrypto.decrypt(file.readBytes(), password.toCharArray())
             val cards = json.decodeFromString(ListSerializer(Card.serializer()), plain.decodeToString())
-            cards.forEach { repo.upsert(it) }
-            cards.size
+            val valid = cards.filter { it.isConsistent() }
+            valid.forEach { repo.upsert(it) }
+            valid.size
         }
     }
 
     override suspend fun delete(name: String) {
-        withContext(Dispatchers.IO) { runCatching { File(baseDir, name).delete() } }
+        withContext(Dispatchers.IO) { runCatching { File(baseDir, File(name).name).delete() } }
     }
 
     companion object {

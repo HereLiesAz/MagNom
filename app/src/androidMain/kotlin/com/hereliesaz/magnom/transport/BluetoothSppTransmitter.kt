@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.content.ContextCompat
 import com.hereliesaz.magnom.domain.Card
 import com.hereliesaz.magnom.domain.TransmitResult
@@ -43,16 +44,20 @@ class BluetoothSppTransmitter(private val context: Context) : Transmitter {
     private val adapter: BluetoothAdapter?
         get() = (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
 
-    override fun isAvailable(): Boolean =
-        adapter?.isEnabled == true && hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    // Permission is requested at transmit time (API 31+), so availability is just "adapter is on".
+    override fun isAvailable(): Boolean = adapter?.isEnabled == true
 
     @SuppressLint("MissingPermission")
     override suspend fun transmit(card: Card): TransmitResult = withContext(Dispatchers.IO) {
         val adapter = adapter ?: return@withContext TransmitResult.Failure("Bluetooth unavailable")
-        if (!isAvailable()) return@withContext TransmitResult.Failure("Bluetooth off or permission not granted")
+        if (!isAvailable()) return@withContext TransmitResult.Failure("Bluetooth is off")
+        if (!ensurePermission()) return@withContext TransmitResult.Failure("Bluetooth permission denied")
 
         val device = pickDevice(adapter)
-            ?: return@withContext TransmitResult.Failure("No paired MagSpoof/serial device. Pair one in Bluetooth settings.")
+            ?: return@withContext TransmitResult.Failure(
+                "No paired device named like ${NAME_HINTS.joinToString("/")}. Pair one in Bluetooth settings " +
+                    "(rename it to include one of those if needed).",
+            )
         _target.value = device.name ?: device.address
 
         var socket: BluetoothSocket? = null
@@ -76,11 +81,21 @@ class BluetoothSppTransmitter(private val context: Context) : Transmitter {
 
     @SuppressLint("MissingPermission")
     private fun pickDevice(adapter: BluetoothAdapter): BluetoothDevice? {
+        // Only a device that looks like a MagSpoof/serial bridge. Falling back to "any paired
+        // device" would write the card's track data to headphones, a car kit, anything bonded.
         val bonded = adapter.bondedDevices ?: emptySet()
         return bonded.firstOrNull { d ->
             val n = d.name?.lowercase() ?: ""
             NAME_HINTS.any { n.contains(it) }
-        } ?: bonded.firstOrNull()
+        }
+    }
+
+    /** API 31+ needs BLUETOOTH_CONNECT at runtime; earlier versions have it from install. */
+    private suspend fun ensurePermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        if (hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) return true
+        return PermissionGate.request(Manifest.permission.BLUETOOTH_CONNECT) &&
+            hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
     }
 
     override fun release() { _status.value = TransportStatus.READY }

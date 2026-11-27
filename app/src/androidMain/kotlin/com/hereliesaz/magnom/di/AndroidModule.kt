@@ -12,7 +12,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-/** Android-specific bindings: encrypted storage and the BLE/USB transports. */
+/** Android-specific bindings: encrypted storage and the Bluetooth/USB transports. */
 val androidModule = module {
     single<SecureStore> { AndroidSecureStore(androidContext()) }
     single { BluetoothSppTransmitter(androidContext()) } bind Transmitter::class

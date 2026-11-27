@@ -37,17 +37,21 @@ actual class AudioSink actual constructor() {
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
         track = at
-        at.play()
-        at.setVolume(AudioTrack.getMaxVolume())
-        var off = 0
-        while (off < shorts.size) {
-            val written = at.write(shorts, off, shorts.size - off)
-            if (written <= 0) break
-            off += written
+        try {
+            at.play()
+            at.setVolume(AudioTrack.getMaxVolume())
+            var off = 0
+            while (off < shorts.size) {
+                val written = at.write(shorts, off, shorts.size - off)
+                // A failed write is an error, not a quietly short swipe.
+                check(written > 0) { "Audio output failed (code $written)" }
+                off += written
+            }
+            at.stop()
+        } finally {
+            runCatching { at.release() }
+            track = null
         }
-        at.stop()
-        at.release()
-        track = null
     }
 
     actual fun stop() {

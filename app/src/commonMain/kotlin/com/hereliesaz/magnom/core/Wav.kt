@@ -14,16 +14,28 @@ object Wav {
         require(bytes[0].toInt() == 'R'.code && bytes[1].toInt() == 'I'.code &&
             bytes[2].toInt() == 'F'.code && bytes[3].toInt() == 'F'.code) { "Not a RIFF file" }
 
-        var pos = 12 // skip RIFF header + WAVE
+        var pos = 12L // skip RIFF header + WAVE
         var dataOffset = -1
         var dataLength = 0
+        var formatChecked = false
         while (pos + 8 <= bytes.size) {
-            val id = bytes.decodeToString(pos, pos + 4)
-            val size = le32(bytes, pos + 4)
-            if (id == "data") { dataOffset = pos + 8; dataLength = size; break }
-            pos += 8 + size + (size and 1)
+            val at = pos.toInt()
+            val id = bytes.decodeToString(at, at + 4)
+            val size = le32(bytes, at + 4)
+            require(size >= 0) { "Corrupt WAV chunk size" }
+            if (id == "fmt ") {
+                require(size >= 16 && at + 8 + 16 <= bytes.size) { "WAV fmt chunk too short" }
+                val format = le16(bytes, at + 8)
+                val channels = le16(bytes, at + 10)
+                val bits = le16(bytes, at + 22)
+                require(format == 1 && channels == 1 && bits == 16) { "Only 16-bit PCM mono WAV is supported" }
+                formatChecked = true
+            }
+            if (id == "data") { dataOffset = at + 8; dataLength = size; break }
+            pos += 8L + size + (size and 1)
         }
         require(dataOffset >= 0) { "No data chunk" }
+        require(formatChecked) { "No fmt chunk" }
 
         val end = minOf(dataOffset + dataLength, bytes.size)
         val count = (end - dataOffset) / 2
@@ -62,6 +74,9 @@ object Wav {
         }
         return out
     }
+
+    private fun le16(b: ByteArray, off: Int): Int =
+        (b[off].toInt() and 0xFF) or ((b[off + 1].toInt() and 0xFF) shl 8)
 
     private fun le32(b: ByteArray, off: Int): Int =
         (b[off].toInt() and 0xFF) or ((b[off + 1].toInt() and 0xFF) shl 8) or
